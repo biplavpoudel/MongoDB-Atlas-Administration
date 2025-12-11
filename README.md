@@ -1,5 +1,7 @@
 # MongoDB Atlas Administrator Path
 
+For the latest and most updated docs, visit: https://www.mongodb.com/docs/
+
 ## 1. Setup Atlas CLI
 Installing Atlas CLI may also install `mongosh`, so this step might be unnecessary. <br>
 Adding the following yum repo might still be useful if you have intension to install **MongoDB Community Server**.<br> 
@@ -48,7 +50,7 @@ atlas config describe default
     ```
     atlas deployments setup Dev --initdb my-films-app/initdb-dev
     ```
-    **Note:** In my case, there was a bug that led to inability to parse my local timezone UTC+05:45 so I had to run:
+    **NOTE:** In my case, there was a bug that led to inability to parse my local timezone UTC+05:45 so I had to run:
     ```
     TZ=UTC atlas deployments setup Dev --initdb my-films-app/initdb-dev
     ```
@@ -99,7 +101,37 @@ atlas config init --profile automation
 ```
 Select `APIKeys` as authentication type and paste the keys when prompted. <br>
 
-**NOTE:** Since my home WiFi network is behind a ISP's CGNAT (Carrier Grade NAT), my public IP address may change dynamically.
-So disable `Require IP Access List for the Atlas Administration API` toggle on Organizations Setting in [MongoDB Cloud](https://cloud.mongodb.com/) to prevent any security issues when setting up the profile, like unable to identify Organizations and Projects under the user account.
+**NOTE:** Since my home WiFi network is behind a ISP's CGNAT (Carrier Grade NAT), my public IP address may change dynamically. And, Atlas doesn't support IPv6 yet.
+So disable `Require IP Access List for the Atlas Administration API` toggle on Organizations Setting in [MongoDB Cloud](https://cloud.mongodb.com/) to prevent any security issues when setting up the profile, like unable to identify Organizations and Projects under the user account. <br> If it doesn't work, just add **0.0.0.0/0** (quad-zero) to the IP Access List in the Security Quickstarts. 
 
 ## 3. Security
+Here is a brief overview of differences between Atlas Users and Database Users. The roles might have been updated but the cores differences remain the same.
+
+![Differences](images/AtlasUsersVsDbUsers.png)
+In short, Database Users are separate from Atlas Users, because Database Users have access to MongoDB databases, while Atlas Users have access to the Atlas application itself.
+
+### 1. Atlas User Management using CLI
+1. To view the organizations in a plaintext, run:
+    ```
+    atlas organizations list --output plaintext
+    ```
+2. To invite the MongoDB user with the email user@example.com to the organization with ORG_OWNER access: we run:
+    ```
+    atlas organizations invitations invite user@example.com --orgId <Organization-ID> --role ORG_OWNER --output json
+    ```
+3. To retrieve the projects for a specific organization, we can run:
+    ```
+    atlas projects list --orgId <Organization-ID> --output plaintext
+    ```
+4. To invite the MongoDB user with the email user@example.com to the project with GROUP_READ_ONLY access, we can run:
+    ```
+    atlas projects invitations invite user@example.com --projectId <projectId> --role GROUP_READ_ONLY --output json
+    ```
+5. To list all the users in a project, run:
+    ```
+    atlas projects users list --projectId <projectId>
+    ```
+6. To delete a specific user from a project, we run:
+    ```
+    atlas projects delete <ID> --projectId <projectId>
+    ```
