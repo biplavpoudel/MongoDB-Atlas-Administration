@@ -170,7 +170,9 @@ Unlike Atlas Users, we can also create temporary Database Users (like, for contr
 ### 3. Atlas Security Auditing
 
 #### 1. Audit Logs
-Audit Logs in Atlas track all system events on M10+ clusters. Database auditing is not available for free-tiered M0 clusters. Atlas charges a 10% uplift in the hourly cost of all dedicated clusters for projects using this feature. Logs can be exported to AWS S3 bucktes, but they incur data egress charges.<br>
+Audit Logs in Atlas track all system events on M10+ clusters, including the actions of a database user. Database auditing is not available for free-tiered M0 clusters. Atlas charges a 10% uplift in the hourly cost of all dedicated clusters for projects using this feature. Logs can be exported to AWS S3 bucktes, but they incur data egress charges.<br>
+
+Audit logs track events such as client metadata, index creation and deletion, creation and removal of collections, and failed authentication.
 
 To configure audit logs, you either need:
 - Organizational Owner Role
@@ -192,8 +194,8 @@ For full audit of system, we need a combination of:
 
 #### 2. Activity Feed
 In Atlas, there are two types of Activity Feeds:
-- **Organization Acitivity Feed**: Billing, Access Events, Alert Configuration, Security Contacts 
-- **Project Activity Feed**: State of Cluster and Database; Networking Event; Database User Update
+- **Organization Acitivity Feed**: Overview on selected events such as billing, access events, alert configurations.
+- **Project Activity Feed**: Granular details on state of clusters and databases, networking events, Atlas/Database user lifecycle updates.
 
 1. To access the Organization Activity Feed:
     ```
@@ -204,3 +206,15 @@ In Atlas, there are two types of Activity Feeds:
     atlas events projects list --projectId <projectId> --output plaintext | tail -n 5
     ```
 **NOTE:** Unlike Audit Log, Activity Feed is available to all tiers of Atlas clusters. <br>
+
+### 4. Encryption in Atlas
+Three categories of Encryption:
+- **Transport Encryption** (Network Encryption) using *TLS* and Certificate Authority: *Let's Encrypt*
+- **Encryption at Rest** using *WiredTiger Encrypted Storage Engine*, and external KMS such as *AWS KMS*, *Azure Key Vault*, *GCP* 
+- **In-use Encryption** (after loaded into memory) using *CSFLE* 
+
+#### CSFLE (Client-Side Field Level Encryption):
+In MongoDB Atlas, individual fields of highly sensitive data, within a document, can be encrypted using CSFLE, making it tamper- and read-proof on the server.
+- Server Side: Data is encrypted in client before sent to Database. Data is kept encrypted on Server once loaded into memory.
+- Client Side: Data and queries are encrypted/decrypted on client only. Encryption keys managed by external KMS; server doesn't have access to neither Encyption keys nor to unencrypted data.
+
