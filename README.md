@@ -305,4 +305,53 @@ It gives information on `replLag` (Replication Lag) that informs about by how mu
 `Initial sync` is an expensive process that copies all data, including the oplog from a replica set members.
 
 ### 4. Read and Write Concerns
-Write concern describes how many data-bearing members need to acknowledge a write operation before it is deemed a success. 
+Write Concern describes how many data-bearing members (i.e. the primary and secondaries, but not arbiters) need to acknowledge a write operation before it is deemed complete. A member can only acknowledge a write operation after it has received and applied the write successfully.<br>
+MongoDB uses a `Write Concern of Majority` by default. But we can also use `Write Concern with a <number>` to represent number of members needed to acknowlege a write operation.<br>
+![Write Concern](images/writeConcern.svg)
+
+Read Concern allow application to specify a durability guarantee for documents returned by Read operations. Can either choose to return most recent data to cluster or return data committed by majority of members.<br>
+
+Read and Write Concerns can be combined to adjust a balance between consistency and availaibilty.
+
+1. **For Write Concern**: Choosing `majority` prioritizes Consistency (Durability), as the system will become unavailable for writes if a majority of nodes cannot be reached (sacrificing Availability). Choosing `1` (Primary doesn't wait for replication to secondaries) prioritizes Availability/Low Latency, but at the risk of losing or rolling back data on a failover.
+
+2. **For Read Concern**: Choosing `local` or `available` prioritizes Availability (Low Latency), as the query returns instantly with whatever data the selected node has. Choosing `majority` or `linearizable` prioritizes Consistency (Freshness), potentially leading to a higher-latency read while the database waits to confirm the data state.
+
+#### 1. Specify the Write Concern on an Individual Operation
+We insert a document into a `cats` collection, including a `options` document that specifies the write concern to **majority** and the write timeout to 3000 milliseconds:
+```
+use pets
+
+db.cats.insertOne({ name: "Mac", color: "black", age: 6 }, { writeConcern:
+{ w: "majority" , wtimeout: 3000 } });
+```
+Write timeout ensures the operation waits for the specified number of acknowledgments, but if the time limit is reached first, the client will immediately return a `Write Concern Error`.
+
+#### 2. Set the Default Read and Write Concerns for all users
+We use `adminCommand()` to issue command to admin database that accepts a document as argument.<br> We set the `defaultReadConcern` level to "majority", which returns only data that has been acknowledged as written to a majority of members in a replica set.<br>
+We set the `defaultWriteConcern` level to "majority" so that a majority of members must acknowledge the write operation.
+```
+use admin
+
+db.adminCommand({
+    setDefaultRWConcern : 1,
+    defaultReadConcern: { level : "majority" },
+    defaultWriteConcern: { w: "majority" }
+  })
+```
+
+#### 3. Read Preferences
+![Read Preference with nearest option](images/readPreference.svg)
+<br>
+Specifies which members of a replica set we want to send read operations to. 
+Options available:
+- primary: (default) all read operations go to primary member
+- primaryPreferred: attempts to read from primary, but can go to secondary if unavailable
+- secondary (chance to return stale data, so caution needed)
+- secondaryPreferred
+- nearest (directs all reads to members with nearest pings; for geographically local reads with low latency)
+
+To set the read preference for secondary with time limit for data staleness of 120 seconds, append it to the options in the connection string:
+```
+mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&readPreference=secondary&maxStalenessSeconds=120
+```
