@@ -215,6 +215,41 @@ Three categories of Encryption:
 
 #### CSFLE (Client-Side Field Level Encryption):
 In MongoDB Atlas, individual fields of highly sensitive data, within a document, can be encrypted using CSFLE, making it tamper- and read-proof on the server.
-- Server Side: Data is encrypted in client before sent to Database. Data is kept encrypted on Server once loaded into memory.
-- Client Side: Data and queries are encrypted/decrypted on client only. Encryption keys managed by external KMS; server doesn't have access to neither Encyption keys nor to unencrypted data.
+1. **Server Side:** Data is encrypted in client before sent to Database. Data is kept encrypted on Server once loaded into memory.
+2. **Client Side:** Data and queries are encrypted/decrypted on client only. Encryption keys managed by external KMS; server doesn't have access to neither Encyption keys nor to unencrypted data.
 
+## 4. Replication
+### 1. Replica Set:
+A MongoDB replica set has following features:
+- Commonly consists of 3, 5, or 7 **mongod** instances.
+- Can have max of 50 members, with a max of 7 *voting members*.
+- mongod instances run on servers (nodes).
+- Has a primary and multiple secondaries.
+
+#### Replica Set Members:
+- Only the Primary member receives *Write* Operations and keeps a rolling records of all the operations in **Oplog**. Each operation in *Oplog* (operation log) is idempotent.
+- By default, only the Primary handles all *Read* operations but that can be changed.
+- Secondary member replicates the contents of the Primary member by duplicating Primary's *oplog entries* and applying all the operations to their own datasets.
+
+### 2. Automatic Failover and Election:
+If the Primary node goes down, **Election** is run to determine the new Primary for Replica Set. The secondary member with most votes from the *Voting Members* is chosen to be the new Primary. The unavailable Primary becomes new Secondary and uses Oplog to catch up.
+
+#### Election:
+Entire election process takes few seconds to complete. Election is triggered when:
+- Adding new node to replica set.
+- Initiating a replica set.
+- Performing Replica set maintenance using: *rs.stepDown()* or *rs.reconfig()*
+- If the secondaries lose connection to the Primary for more than configured timeout (default: 10 seconds)
+
+The secondary that initiated the election shares how recent their data is as well as the election term (count tracking number of elections). It then proceeds to vote for itself.
+
+#### Voting Memeber:
+- Each Voting Member can cast a single vote per election. 
+- Maximum of 7 voting members. 
+- Important to have **odd number** of voting member in a replica set.
+
+#### Priority Value:
+- Default value of 1 for all members.
+- We can assign values between 0 and 1000.
+- Higher the value, more the eligibilty to become primary.
+- Member with 0 ineligible to become primary and can't initiate election.
