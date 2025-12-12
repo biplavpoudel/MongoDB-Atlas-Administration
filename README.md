@@ -219,6 +219,8 @@ In MongoDB Atlas, individual fields of highly sensitive data, within a document,
 2. **Client Side:** Data and queries are encrypted/decrypted on client only. Encryption keys managed by external KMS; server doesn't have access to neither Encyption keys nor to unencrypted data.
 
 ## 4. Replication
+![Replication](images/replication.svg)
+
 ### 1. Replica Set
 A MongoDB replica set has following features:
 - Commonly consists of 3, 5, or 7 **mongod** instances.
@@ -232,6 +234,8 @@ A MongoDB replica set has following features:
 - Secondary member replicates the contents of the Primary member by duplicating Primary's *oplog entries* and applying all the operations to their own datasets.
 
 ### 2. Automatic Failover and Election
+![Failover](images/failover.svg)
+
 If the Primary node goes down, **Election** is run to determine the new Primary for Replica Set. The secondary member with most votes from the *Voting Members* is chosen to be the new Primary. The unavailable Primary becomes new Secondary and uses Oplog to catch up.
 
 Entire election process takes few seconds to complete. Election is triggered when:
@@ -297,7 +301,8 @@ To retrive information about the secondaries’ oplog:
 ```
 rs.printSecondaryReplicationInfo()
 ```
-It gives information on `replLag` (Replication Lag) that informs about how much each of the secondaries is lagging behind the primary. If the replication lag is excessive in a secondary node, it enters into `RECOVERING` state. It is eligible to vote but can't accept Read operations. To bring recovering member up-to-date, it has to start initial sync.
+It gives information on `replLag` (Replication Lag) that informs about by how much time each of the secondaries is lagging behind the primary. If the replication lag is excessive in a secondary node, it enters into `RECOVERING` state. It is eligible to vote but can't accept Read operations. To bring recovering member up-to-date, it has to start initial sync.
 `Initial sync` is an expensive process that copies all data, including the oplog from a replica set members.
 
 ### 4. Read and Write Concerns
+Write concern describes how many data-bearing members need to acknowledge a write operation before it is deemed a success. 
