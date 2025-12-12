@@ -227,14 +227,13 @@ A MongoDB replica set has following features:
 - Has a primary and multiple secondaries.
 
 #### Replica Set Members:
-- Only the Primary member receives *Write* Operations and keeps a rolling records of all the operations in **Oplog**. Each operation in *Oplog* (operation log) is idempotent.
+- Only the Primary member receives *Write* Operations and keeps a rolling records of all the operations in **Oplog**.
 - By default, only the Primary handles all *Read* operations but that can be changed.
 - Secondary member replicates the contents of the Primary member by duplicating Primary's *oplog entries* and applying all the operations to their own datasets.
 
 ### 2. Automatic Failover and Election:
 If the Primary node goes down, **Election** is run to determine the new Primary for Replica Set. The secondary member with most votes from the *Voting Members* is chosen to be the new Primary. The unavailable Primary becomes new Secondary and uses Oplog to catch up.
 
-#### Election:
 Entire election process takes few seconds to complete. Election is triggered when:
 - Adding new node to replica set.
 - Initiating a replica set.
@@ -253,3 +252,52 @@ The secondary that initiated the election shares how recent their data is as wel
 - We can assign values between 0 and 1000.
 - Higher the value, more the eligibilty to become primary.
 - Member with 0 ineligible to become primary and can't initiate election.
+
+### 3. Operation Log (Oplog)
+Oplog is a special collection called a **capped collection** that behaves like a *Ring Buffer*, as the oldest entries in Oplog are overwritten once it reches capacity. Each member in a replica set has its own oplog. <br>
+**Note:** Each operation in *Oplog* (operation log) is idempotent.
+
+Oplog is needed due to its usefulness such as:
+- Recoveing to a specific timestamp in the oplog.
+- Checking if secondaries are lagging behind the primary.
+- Determining oplog window to avoid an initial sync when performing maintenance.
+
+#### 1. Retrieve the Recent Oplog Entries
+To retrieve the most recent entries in the oplog, first log into the Atlas cluster and switch to a database, e.g. `sample_database`. Insert multiple documents into it to populate the `oplog` collection with data:
+```
+use sample_supplies
+
+show collections                                                    # returns sales
+
+db.sales.updateMany({}, {$inc: {"customer.satisfaction": 1}});
+```
+This command increases the value of the field **customer.satisfaction** by 1, for every documents inside the sales collection.  
+
+Now switch to `local` db and examine its collections:
+```
+use local
+
+show collections
+```
+This shows `oplog.rs` as the collection inside local database.<br>
+Query the namespace  `ns` followed by desired database and its colelction using dot notation.<br>
+Sort by the natural descending order by using the `$natural` operator followed by -1. Optionally, you can sort by timestamp in descending order by using `{"ts":-1}` for more stability.<br>
+Finally, limit the results to 5 by using `limit()` followed by 5.
+```
+db.oplog.rs.find({"ns" : "sample_supplies.sales"}).sort({$natural: -1}).limit(5)
+```
+
+#### 2. Retrive Information about Oplog 
+By default, the size taken by oplog is 5% of available diskspace with upper limit of 50GBs.
+To confirm size of oplog, run:
+```
+rs.printReplicationInfo()
+```
+To retrive information about the secondaries’ oplog:
+```
+rs.printSecondaryReplicationInfo()
+```
+It gives information on `replLag` (Replication Lag) that informs about how much each of the secondaries is lagging behind the primary. If the replication lag is excessive in a secondary node, it enters into `RECOVERING` state. It is eligible to vote but can't accept Read operations. To bring recovering member up-to-date, it has to start initial sync.
+`Initial sync` is an expensive process that copies all data, including the oplog from a replica set members.
+
+### 4.
