@@ -135,3 +135,72 @@ In short, Database Users are separate from Atlas Users, because Database Users h
     ```
     atlas projects delete <ID> --projectId <projectId>
     ```
+### 2. Database User Management using CLI
+MongoDB supports following authentication methods for Database Users:
+- SCRAM (default)
+- X.509
+- Kerberos
+- OIDC
+- AWS IAM
+- LDAP <br>
+
+Unlike Atlas Users, we can also create temporary Database Users (like, for contractors) that expire in 6 hours, 1 day, or 1 week.
+
+1. To add a Database User with a Built-In Role (e.g. AtlasAdmin role):
+    ```
+    atlas dbusers create atlasAdmin --username dba --password dba-pass --deleteAfter 2026-01-14  --projectId <projectId>
+    ```
+2. To add an IP Address to the Access List:
+    ```
+    atlas accessList create <ip> --type ipAddress --projectId <projectId>
+    ```
+3. To update a Database User’s Role (e.g. to ReadWriteAnyDatabase role):
+    ```
+    atlas dbusers update dba --role readWriteAnyDatabase --projectId <projectId>
+    ```
+4. To delete a User from an organization:
+    ```
+    atlas dbusers delete dba --projectId <projectId>
+    ```
+5. To remove an IP Address from the Access List:
+    ```
+    atlas accessList delete <ip> --projectId <projectId>
+    ```
+
+### 3. Atlas Security Auditing
+
+#### 1. Audit Logs
+Audit Logs in Atlas track all system events on M10+ clusters. Database auditing is not available for free-tiered M0 clusters. Atlas charges a 10% uplift in the hourly cost of all dedicated clusters for projects using this feature. Logs can be exported to AWS S3 bucktes, but they incur data egress charges.<br>
+
+To configure audit logs, you either need:
+- Organizational Owner Role
+- Project Owner Role for the project you want to update
+
+1. To get server host names, we run:
+    ```
+    atlas process list --output plaintext
+    ```
+2. Now to download the logs with log name: *mongodb.gz* and host: *atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017* :
+    ```
+    atlas logs download atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017 mongodb.gz --projectId <projectId>
+    ```
+**NOTE:** Atlas Audit Logs don't track user creation or modification events as these operations are directly perfomed inside Admin Database.<br>
+For full audit of system, we need a combination of: 
+- Audit Logs
+- mongodb.log
+- Atlas Activity Feed
+
+#### 2. Activity Feed
+In Atlas, there are two types of Activity Feeds:
+- **Organization Acitivity Feed**: Billing, Access Events, Alert Configuration, Security Contacts 
+- **Project Activity Feed**: State of Cluster and Database; Networking Event; Database User Update
+
+1. To access the Organization Activity Feed:
+    ```
+    atlas events organizations list --orgId <organizationId> --output plaintext
+    ```
+2. To access the Project Activity Feed for last 5 logs:
+    ```
+    atlas events projects list --projectId <projectId> --output plaintext | tail -n 5
+    ```
+**NOTE:** Unlike Audit Log, Activity Feed is available to all tiers of Atlas clusters. <br>
