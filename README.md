@@ -341,17 +341,19 @@ db.adminCommand({
 ```
 
 #### 3. Read Preferences
-![Read Preference with nearest option](images/readPreference.svg)
-<br>
 Specifies which members of a replica set we want to send read operations to. 
 Options available:
 - primary: (default) all read operations go to primary member
 - primaryPreferred: attempts to read from primary, but can go to secondary if unavailable
 - secondary (chance to return stale data, so caution needed)
 - secondaryPreferred
-- nearest (directs all reads to members with nearest pings; for geographically local reads with low latency)
+- nearest (directs all reads to members with nearest pings; for geographically local reads with low latency) <br>
+
+![Read Preference with nearest option](images/readPreference.svg)
 
 To set the read preference for secondary with time limit for data staleness of 120 seconds, append it to the options in the connection string:
 ```
 mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&readPreference=secondary&maxStalenessSeconds=120
 ```
+
+### 5. Deploying Replica Set in MongoDB Deployment
