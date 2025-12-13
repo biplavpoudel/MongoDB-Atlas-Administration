@@ -356,12 +356,12 @@ To set the read preference for secondary with time limit for data staleness of 1
 mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&readPreference=secondary&maxStalenessSeconds=120
 ```
 
-### 5. Deploying Replica Set in MongoDB Deployment
+## 5. Deploying Replica Set in MongoDB Deployment
 I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
 
 **NOTE:** I have added the configurations inside [ReplicaSetConfig](https://github.com/biplavpoudel/MongoDB-Atlas-Administration/tree/main/ReplicaSetConfig) folder in this repository.
 
-#### 1. Update DHCP Server
+### 1. Update DHCP Server
 Inside our `dhcp1.example.com` DHCP Server, we need to update the `/etc/kea/kea-dhcp4.conf` to create a new subnet for our mongod instances:
 ```json
 "subnet4": [
@@ -398,7 +398,7 @@ kea-dhcp4 -t /etc/kea/kea-dhcp4.conf
 systemctl restart kea-dhcp4
 ```
 
-#### 2. Update DNS Server
+### 2. Update DNS Server
 
 Lets head into `ns1.example.com` DNS Server, log in as root and edit the existing `/etc/bind/named.conf.local` to add a new DNZ zone: `replset.com`. Append new lines as:
 ```
@@ -457,7 +457,7 @@ Reload BIND9 service:
 systemctl reload bind9
 ```
 
-#### 3. Create three Mongod Instances
+### 3. Create three Mongod Instances
 I am creating three Debian 13 (trixie) based VMs in the subnet 10.0.2.128/25.
 
 Install MongoDB on each instances by following the instructions in this [Installation Docs](https://www.mongodb.com/docs/manual/administration/install-community/?linux-distribution=debian&linux-package=default&operating-system=linux&search-linux=without-search-linux).
@@ -480,4 +480,37 @@ firewall-cmd --permanent --add-rich-rule='
     source address="10.0.2.128/25"
     port protocol="tcp" 
     port="27017" accept'
+```
+
+### 4. Keyfile Authentication for internal cluster authentication
+
+MongoDB supports exactly two mechanisms for internal member authentication:
+- Keyfile authentication (symmetric, shared secret)
+- X.509 certificate authentication (asymmetric, PKI-based)
+
+We are opting for `Keyfile` authentication, for this testing lab, to avoid the hassle and operational pain that comes with X.509 certificates. With keyfile authentication, each mongod instances in the replica set uses the contents of the keyfile as the shared password for authenticating other members in the deployment. Only mongod instances with the correct keyfile can join the replica set.
+
+#### 1. Generate the keyfile
+Lets pick `mongod0` and generate the shared key:
+```
+sudo mkdir -p /etc/mongodb/pki
+sudo openssl rand -base64 756 | sudo tee /etc/mongodb/pki/keyfile
+```
+#### 2. Set permissions and ownership
+Set the owner to be `mongodb` (system user running `mongod`) and permission to be 400.
+```
+sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
+sudo chmod 400 /etc/mongodb/pki/keyfile
+```
+#### 3. Copy the key to other VMs
+We use scp (secure copy) to replicate the keyfile in `etc/mongodb/pki/keyfile` of remaining two VMs:
+```
+scp /etc/mongodb/pki/keyfile root@10.0.2.152:/tmp/
+scp /etc/mongodb/pki/keyfile root@10.0.2.153:/tmp/
+```
+Then, in each of the two remaining VMs, `mongod1` and `mongod2` we repeat the process:
+```
+sudo mv /tmp/keyfile /etc/mongodb/pki/
+sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
+sudo chmod 400 /etc/mongodb/pki/keyfile
 ```
