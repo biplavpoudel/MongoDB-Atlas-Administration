@@ -660,7 +660,7 @@ To list all members in the updated replica set, we run:
 ```
 rs.conf().members
 ```
-### 4. Retrieve the Status of a Replica Set
+### 5. Retrieve the Status of a Replica Set
 We use `rs.status()` command (wrapper for `replSetGetStatus`) to retrieve the current status of a replica set, such as:
 - Health of each member
 - Check if a member is the primary or a secondary
