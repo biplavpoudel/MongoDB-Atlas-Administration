@@ -471,7 +471,13 @@ iface enp1s0 inet static
 	dns-nameservers 10.0.2.5
 	dns-search replset.com
 ```
-Similary set static IP of `10.0.2.152` and `10.0.2.153` for mongod1 and mongod2 respectively.
+Similary, set static IP of `10.0.2.152` and `10.0.2.153` for mongod1 and mongod2 respectively.<br>
+Likewise, update the IP address and domain names in `/etc/hosts` for each VMs.<br>
+e.g. For `mongod0` server:
+```
+127.0.0.1	localhost
+10.0.2.151	mongod0.replset.com	mongod0
+```
 
 Likewise open firewall port: tcp/27017 in firewall-cmd as:
 ```
@@ -564,7 +570,9 @@ rs.initiate(
 ```
 
 ### 7. Create Admin User
-On Server1,`mongod0` (make sure it is the **primary member**), we create an admin user that’s able to authenticate to the replica set.
+Execute `mongosh` on each VM, one of the VM becomes primary and rest becomes secondary. Since each VM has `priority:1`, the election is random.
+
+In my case, `mongod2` was the **primary member**, so inside it I created an admin user that’s able to authenticate to the replica set.
 ```json
 db.createUser({
    user: "dba-admin",
@@ -574,3 +582,33 @@ db.createUser({
    ]
  })
 ```
+
+### 8. Login as Admin User
+Exit `mongosh` and then log back in to the replica set, `mongod2` as: 
+```
+quit
+
+mongosh --host mongod2.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
+```
+### 9. Change Priority of Members
+Now, inside the mongosh, to chnage the priority level of `mongod0` to be be higher than others, we execute:
+```
+use admin
+
+rs.conf()
+
+cfg = rs.conf()
+cfg.members[0].priority = 2  
+cfg.members[1].priority = 1
+cfg.members[2].priority = 1    
+
+rs.reconfig(cfg)
+```
+### 10. Initiate an Election
+To initiate an election, we use the rs.stepDown() command: 
+```
+rs.stepDown()
+
+quit
+```
+Now `mongod0` is elected to be the primary member of the `mongodb-repl-dev` replica set.
