@@ -357,3 +357,98 @@ mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&rea
 ```
 
 ### 5. Deploying Replica Set in MongoDB Deployment
+I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
+
+Inside our `dhcp1.example.com` DHCP Server, we need to update the `/etc/kea/kea-dhcp4.conf` to create a new subnet for our mongod instances:
+```json
+"subnet4": [
+
+  {
+    "id": 1,
+    "subnet": "10.0.2.0/25",
+    "pools": [ { "pool": "10.0.2.20-10.0.2.100" } ],
+    "option-data": [
+      { "name": "routers", "data": "10.0.2.1" },
+      { "name": "domain-name-servers", "data": "10.0.2.5" },
+      { "name": "domain-search", "data": "example.com" },
+      { "name": "domain-name", "data": "example.com" }
+    ]
+  },
+  {
+    "id": 2,
+    "subnet": "10.0.2.128/25",
+    "pools": [ { "pool": "10.0.2.150-10.0.2.180" } ],
+    "option-data": [
+      { "name": "routers", "data": "10.0.2.1" },
+      { "name": "domain-name-servers", "data": "10.0.2.5" },
+      { "name": "domain-search", "data": "replset.com, example.com" },
+      { "name": "domain-name", "data": "replset.com" }
+    ]
+  }
+]
+
+```
+
+Test and restart kea-dhcp4:
+```
+kea-dhcp4 -t /etc/kea/kea-dhcp4.conf
+systemctl restart kea-dhcp4
+```
+
+Lets head into `ns1.example.com` DNS Server, log in as root and edit the existing `/etc/bind/named.conf.local` to add a new DNZ zone: `replset.com`. Append new lines as:
+```
+cat <<EOF >> /etc/bind/named.conf.local
+zone "replset.com"
+    {
+    type master;
+    file "/etc/bind/zones/db.replset.com";
+    };
+EOF
+```
+
+Lets create a new Zone inside `/etc/bind/zones` as:
+```
+vim db.replset.com
+```
+and add the following record:
+```vim
+$TTL	1w
+@	IN	SOA	ns1.example.com. admin.replset.com. (
+			2025 		; Serial
+			1w		; Refresh
+			1d		; Retry
+			28d		; Expire
+			1w) 	; Negative Cache TTL
+			 
+; name servers - NS records
+		IN	NS	ns1.example.com.
+
+; name servers - A records
+ns1.example.com.		IN	A	10.0.2.5
+
+; 10.0.2.0/24 - A records
+mongod0 IN      A       10.0.2.151       
+mongod1 IN      A       10.0.2.152      
+mongod2 IN      A       10.0.2.153
+```
+
+Update the reverse zone `db.2.0.10` with:
+```
+cat << EOF >> /etc/bind/zones/db.2.0.10
+
+; --- New MongoDB Replica Set PTR Records ---
+151     IN      PTR     mongod0.replset.com.
+152     IN      PTR     mongod1.replset.com.
+153     IN      PTR     mongod2.replset.com.
+EOF
+```
+Validate zone files as:
+```
+named-checkzone replset.com /etc/bind/zones/db.replset.com
+named-checkzone 2.0.10.in-addr.arpa /etc/bind/zones/db.2.0.10
+```
+Reload BIND9 service:
+```
+systemctl reload bind9
+```
+

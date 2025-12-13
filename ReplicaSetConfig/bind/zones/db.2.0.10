@@ -1,0 +1,22 @@
+$TTL 604800	; 1 week
+2.0.10.in-addr.arpa.	IN SOA	ns1.example.com. hostmaster.example.com. (
+				26         ; serial
+				604800     ; refresh (1 week)
+				86400      ; retry (1 day)
+				2419200    ; expire (4 weeks)
+				604800     ; minimum (1 week)
+				)
+			NS	ns1.example.com.
+$TTL 600	; 10 minutes
+185.2.0.10.in-addr.arpa. PTR	pro-10-0-2-185.example.com.
+			DHCID	( AAIB4dTBfE5g0RJR+lW/51Q0vr0zTEK3efaWWkwY2yJ4
+				3Ws= ) ; 2 1 32
+$TTL 604800	; 1 week
+4.2.0.10.in-addr.arpa.	PTR	dhcp1.example.com.
+5.2.0.10.in-addr.arpa.	PTR	ns1.example.com.
+6.2.0.10.in-addr.arpa.	PTR	id1.example.com.
+
+; --- New MongoDB Replica Set PTR Records ---
+151     IN      PTR     mongod0.replset.com.
+152     IN      PTR     mongod1.replset.com.
+153     IN      PTR     mongod2.replset.com.
