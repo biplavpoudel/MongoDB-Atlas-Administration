@@ -359,6 +359,8 @@ mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&rea
 ### 5. Deploying Replica Set in MongoDB Deployment
 I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
 
+**NOTE:** I have added the configurations inside [ReplicaSetConfig](https://github.com/biplavpoudel/MongoDB-Atlas-Administration/tree/main/ReplicaSetConfig) folder in this repository.
+
 #### 1. Update DHCP Server
 Inside our `dhcp1.example.com` DHCP Server, we need to update the `/etc/kea/kea-dhcp4.conf` to create a new subnet for our mongod instances:
 ```json
