@@ -619,7 +619,7 @@ mongosh --host mongod0.replset.com -u dba-admin -p dba-pass --authenticationData
 
 ## 6. Reconfigure Replica Set in MongoDB Deployment
 ### 1. Retrieve the Status of a mongod Instance
-We use the `db.hello()` command to retrieve lightweight information about a replica set, including:
+We use the `db.hello()` command to retrieve information about the instance of the replica set, including lightweight information about:
 - Host of each member
 - Name of the replica set
 - Name of the primary
