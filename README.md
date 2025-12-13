@@ -359,6 +359,7 @@ mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&rea
 ### 5. Deploying Replica Set in MongoDB Deployment
 I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
 
+#### 1. Update DHCP Server
 Inside our `dhcp1.example.com` DHCP Server, we need to update the `/etc/kea/kea-dhcp4.conf` to create a new subnet for our mongod instances:
 ```json
 "subnet4": [
@@ -394,6 +395,8 @@ Test and restart kea-dhcp4:
 kea-dhcp4 -t /etc/kea/kea-dhcp4.conf
 systemctl restart kea-dhcp4
 ```
+
+#### 2. Update DNS Server
 
 Lets head into `ns1.example.com` DNS Server, log in as root and edit the existing `/etc/bind/named.conf.local` to add a new DNZ zone: `replset.com`. Append new lines as:
 ```
@@ -452,3 +455,27 @@ Reload BIND9 service:
 systemctl reload bind9
 ```
 
+#### 3. Create three Mongod Instances
+I am creating three Debian 13 (trixie) based VMs in the subnet 10.0.2.128/25.
+
+Install MongoDB on each instances by following the instructions in this [Installation Docs](https://www.mongodb.com/docs/manual/administration/install-community/?linux-distribution=debian&linux-package=default&operating-system=linux&search-linux=without-search-linux).
+
+Edit the IP address to be static by going to `/etc/network/interface`. <br>
+For `mongod0.replset.com`, modify as:
+```
+iface enp1s0 inet static
+	address 10.0.2.151
+	gateway 10.0.2.1
+	dns-nameservers 10.0.2.5
+	dns-search replset.com
+```
+Similary set static IP of `10.0.2.152` and `10.0.2.153` for mongod1 and mongod2 respectively.
+
+Likewise open firewall port: tcp/27017 in firewall-cmd as:
+```
+firewall-cmd --permanent --add-rich-rule='
+    rule family="ipv4"
+    source address="10.0.2.128/25"
+    port protocol="tcp" 
+    port="27017" accept'
+```
