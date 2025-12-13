@@ -514,3 +514,29 @@ sudo mv /tmp/keyfile /etc/mongodb/pki/
 sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
 sudo chmod 400 /etc/mongodb/pki/keyfile
 ```
+#### 4. Update `mongod.conf` on all three Replica Set members
+We now update the configuration file for for `mongod` process in all three VMs for replication, security and network interfaces.
+
+Lets vim into `/etc/mongod.conf` and edit the file as:
+```yaml
+security:
+ keyFile: /etc/mongodb/pki/keyfile
+ authorization: enabled  
+
+replication:
+ replSetName: mongodb-repl-dev
+
+net:
+ port: 27017
+ bindIp: 127.0.0.1, mongod0.replset.com
+```
+
+Replicate the update in other two VMs and update `net.bindIp` field accordingly. <br>
+
+**WARN**: Use spaces not tabs, as YAML explicitly needs spaces.
+
+Now, restart MongoDB for changes to take effect and ensure `mongod` daemon is listening in correct IP:
+```
+sudo systemctl restart mongod
+ss -tulpn | grep 27017
+```
