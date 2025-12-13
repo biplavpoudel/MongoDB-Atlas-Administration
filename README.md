@@ -540,3 +540,5 @@ Now, restart MongoDB for changes to take effect and ensure `mongod` daemon is li
 sudo systemctl restart mongod
 ss -tulpn | grep 27017
 ```
+Correct output for `mongod0` looks like:
+![](images/mongod-listen.png)
