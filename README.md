@@ -514,7 +514,7 @@ sudo mv /tmp/keyfile /etc/mongodb/pki/
 sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
 sudo chmod 400 /etc/mongodb/pki/keyfile
 ```
-#### 4. Update `mongod.conf` on all three Replica Set members
+### 5. Update `mongod.conf` on all three Replica Set members
 We now update the configuration file for for `mongod` process in all three VMs for replication, security and network interfaces.
 
 Lets vim into `/etc/mongod.conf` and edit the file as:
@@ -533,7 +533,7 @@ net:
 
 Replicate the update in other two VMs and update `net.bindIp` field accordingly. <br>
 
-**WARN**: Use spaces not tabs, as YAML explicitly needs spaces.
+**WARN**: Use spaces not tabs, as YAML explicitly needs spaces. Also, the reason we use fqdn in `net.bindIp` is because according to official documentation: *Starting in MongoDB 5.0, nodes that are only configured with an IP address fail startup validation and do not start.*
 
 Now, restart MongoDB for changes to take effect and ensure `mongod` daemon is listening in correct IP:
 ```
@@ -541,4 +541,36 @@ sudo systemctl restart mongod
 ss -tulpn | grep 27017
 ```
 Correct output for `mongod0` looks like:
-![](images/mongod-listen.png)
+![ss -tulpn | grep 27017](images/mongod-listen.png)
+
+### 6. Initiate the Replica Set
+Connect on Server1, **mongod0**, by using the `mongosh` command and switch to the `admin` database.<br> Use `rs.initiate()` with a document that contains the replica set as the `_id` and the hosts’ names. 
+```json
+mongosh
+
+use admin
+
+rs.initiate(
+  {
+     _id: "mongodb-repl-dev",
+     version: 1,
+     members: [
+        { _id: 0, host : "mongod0.replset.com" },
+        { _id: 1, host : "mongod1.replset.com" },
+        { _id: 2, host : "mongod2.replset.com" }
+     ]
+  }
+)
+```
+
+### 7. Create Admin User
+On Server1,`mongod0` (make sure it is the **primary member**), we create an admin user that’s able to authenticate to the replica set.
+```json
+db.createUser({
+   user: "dba-admin",
+   pwd: "dba-pass",
+   roles: [
+     {role: "root", db: "admin"}
+   ]
+ })
+```
