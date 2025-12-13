@@ -551,7 +551,7 @@ Correct output for `mongod0` looks like:
 
 ### 6. Initiate the Replica Set
 Connect on Server1, **mongod0**, by using the `mongosh` command and switch to the `admin` database.<br> Use `rs.initiate()` with a document that contains the replica set as the `_id` and the hosts’ names. 
-```json
+```
 mongosh
 
 use admin
@@ -573,7 +573,7 @@ rs.initiate(
 Execute `mongosh` on each VM, one of the VM becomes primary and rest becomes secondary. Since each VM has `priority:1`, the election is random.
 
 In my case, `mongod2` was the **primary member**, so inside it I created an admin user that’s able to authenticate to the replica set.
-```json
+```
 db.createUser({
    user: "dba-admin",
    pwd: "dba-pass",
@@ -591,7 +591,7 @@ quit
 mongosh --host mongod2.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
 ```
 ### 9. Change Priority of Members
-Now, inside the mongosh, to chnage the priority level of `mongod0` to be be higher than others, we execute:
+Now, inside the `mongosh`, to change the priority level of `mongod0` to be be higher than others in a running replica set, we execute `rs.conf()`. We assign the `rs.conf()` command to a variable to retrieve the replica set configuration object and assign priority value for each member:
 ```
 use admin
 
@@ -612,3 +612,58 @@ rs.stepDown()
 quit
 ```
 Now `mongod0` is elected to be the primary member of the `mongodb-repl-dev` replica set.
+Log in to the mongosh as admin user using:
+```
+mongosh --host mongod0.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
+```
+
+## 6. Reconfigure Replica Set in MongoDB Deployment
+### 1. Retrieve the Status of a mongod Instance
+We use the `db.hello()` command to retrieve lightweight information about a replica set, including:
+- Host of each member
+- Name of the replica set
+- Name of the primary
+- Election id
+- Timestamps for when the last operation occurred and when it became durable
+
+![Running db.hello()](images/db.hello().png)
+
+### 2. Add a Member to a Replica Set
+To add a new member to a replica set, define the new member’s `_id` and `host name` in an object. Then, push this new member to the members array in the configuration object and run `rs.reconfig()` with `config` variable asargument to apply changes:
+```
+member = {"_id": 3, "host": "mongod3.replset.com:27017"}
+
+config.members.push(member)
+
+rs.reconfig(config)
+```
+Alternatively, it is easier to just use the `rs.add()` wrapper followed by the host to add a member to the replica set:
+```
+rs.add("mongod3.replset.com:27017")
+```
+
+### 3. Remove a Member from a Replica Set
+To remove a member from a replica set, we can use the JavaScript `splice()` method. Pass in as arguments the index of the starting member and the number of elements being removed:
+```
+config.members.splice(3, 1)
+
+rs.reconfig(config)
+```
+
+Or, just use use the `rs.remove()` wrapper followed by the host to remove a member from the replica set: 
+```
+rs.remove("mongod3.replset.com:27017")
+```
+
+### 4. List all members:
+To list all members in the updated replica set, we run:
+```
+rs.conf().members
+```
+### 4. Retrieve the Status of a Replica Set
+We use `rs.status()` command (wrapper for `replSetGetStatus`) to retrieve the current status of a replica set, such as:
+- Health of each member
+- Check if a member is the primary or a secondary
+- Information about operations
+
+`rs.status()` provides detailed information about all members of the replica set, their current states (PRIMARY, SECONDARY, STARTUP2, RECOVERING, etc.), hostnames, replication lag (optime), and overall health.<br> Meanwhile, `db.hello()` seems more like the subset of the full status and only provides an immediate state information needed for clients to route operations correctly.
