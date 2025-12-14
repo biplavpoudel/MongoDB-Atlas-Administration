@@ -867,11 +867,11 @@ A sample JSON log entry from a mongod instance shows a client connection:
 | **svc** | *String* | Name of the service in whose context the log statement was made. Will be `S` for "shard", `R` "router", or `-` for "unknown" or "none". |
 | **msg** | *String* | Log output message passed from the server or driver. If necessary, the message is escaped according to the JSON specification. |
 | **attr** | *Object* | One or more key-value pairs for additional log attributes. If a log message does not include any additional attributes, the `attr` object is omitted. Attribute values may be referenced by their key name in the `msg` message body, depending on the message. If necessary, the attributes are escaped according to the JSON specification. |
-| **tags** | *Array of strings* | Strings representing any tags applicable to the log statement. For example, `["startupWarnings"]`. |
+| **tags** | *Array of strings* | Strings representing any tags applicable to the log statement. For example, **["startupWarnings"]**. We can view all the messages with a tag of *startupWarnings* by running `show log startupWarnings` inside mongosh.|
 | **truncated** | *Object* | Information about the log message truncation, if applicable. Only included if the log entry contains at least one truncated `attr` attribute. |
 | **size** | *Object* | Original size of a log entry if it has been truncated. Only included if the log entry contains at least one truncated `attr` attribute. |
 
-#### 3. Field Types
+#### 3. Field Types (Severity)
 `Severity` ranges from `Fatal` (most severe) to `Debug` (least severe).
 
 | Level | Description | Detail |
@@ -882,7 +882,8 @@ A sample JSON log entry from a mongod instance shows a client connection:
 | **I** | Informational | General information, used when verbosity level is 0. |
 | **D1** - **D5** | Debug | Detailed logging, used for verbosity levels > 0. The number (D1, D2, etc.) indicates the specific debug verbosity level. |
 
-Likewise, `Component` field type indicates the category a logged event is a member of, such as **NETWORK** or **COMMAND** Some of the available components are:
+#### 4. Field Types (Component)
+Likewise, `Component` field type indicates the category a logged event is a member of, such as **NETWORK** or **COMMAND**. We can specify the verbosity level of various components to determine the amount of Informational and Debug messages MongoDB outputs. Some of the available components are:
 - **ACCESS**: Messages related to access control, such as authentication. 
 - **ASSERT**: An assertion is triggered when an operation returns an error.
 - **COMMAND**: Messages related to database commands, such as count.
@@ -892,3 +893,5 @@ Likewise, `Component` field type indicates the category a logged event is a memb
 - **NETWORK**: Messages related to network activities, such as accepting connections. <br>
 
 and many more.
+
+### 4. MongoDB Server Log Customizations
