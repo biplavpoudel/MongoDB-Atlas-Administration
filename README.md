@@ -795,7 +795,7 @@ Since containers are meant to be ephemeral in nature, the server logs are probab
 podman logs Dev
 ```
 
-### 5. Retrive Log Messages in mongosh
+#### 5. Retrive Log Messages in mongosh
 To retrieve recent global log messages from the RAM cache in `mongosh`, we can use the `show log ` helper and provide it with one of the available filters, such as `global` or `startupWarnings`.
 ```
 show log <type>
@@ -806,14 +806,89 @@ show logs
 ```
 ----
 
-#### NOTE: 
-#### 1. Client Log path (i.e. `mongosh`), unlike server logs (`mongod`), can be find out by running the follwing command inside `mongosh`:
-```
-log.getPath()
-```
-In my case, it was `/home/mongod/.mongodb/mongosh/693e776c7a9ee6f4dc8de665_log`.
+**NOTE**: 
+1. Client Log path (i.e. `mongosh`), unlike server logs (`mongod`), can be find out by running the follwing command inside `mongosh`:
+    ```
+    log.getPath()
+    ```
+    In my case, it was `/home/mongod/.mongodb/mongosh/693e776c7a9ee6f4dc8de665_log`.
 
-#### 2. The mongosh helper `show log global` internally calls the `getLog` command to return recent log messages from the RAM cache:
+2. The mongosh helper `show log global` internally calls the `getLog` command to return recent log messages from the RAM cache:
+    ```
+    db.adminCommand( { getLog:'global'} )
+    ```
+
+### 3. MongoDB Log Events
+
+#### 1. Sample Log Entry
+A sample JSON log entry from a mongod instance shows a client connection:
+```json
+{
+  "t": {
+    "$date": "2020-05-20T19:18:40.604+00:00"
+  },
+  "s": "I",
+  "c": "NETWORK",
+  "id": 51800,
+  "ctx": "conn281",
+  "svc": "R",
+  "msg": "client metadata",
+  "attr": {
+    "remote": "192.168.14.15:37666",
+    "client": "conn281",
+    "doc": {
+      "application": {
+        "name": "MongoDB Shell"
+      },
+      "driver": {
+        "name": "MongoDB Internal Client",
+        "version": "4.4.0"
+      },
+      "os": {
+        "type": "Linux",
+        "name": "CentOS Linux release 8.0.1905 (Core) ",
+        "architecture": "x86_64",
+        "version": "Kernel 4.18.0-80.11.2.el8_0.x86_64"
+      }
+    }
+  }
+}
 ```
-db.adminCommand( { getLog:'global'} )
-```
+
+#### 2. Field Descriptions
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| **t** | *Datetime* | Timestamp of the log message in ISO-8601 format. |
+| **s** | *String* | Short severity code of the log message.|
+| **c** | *String* | Full component string for the log message.|
+| **id** | *Integer* | Unique identifier for the log statement.|
+| **ctx** | *String* | Name of the thread that caused the log statement. |
+| **svc** | *String* | Name of the service in whose context the log statement was made. Will be `S` for "shard", `R` "router", or `-` for "unknown" or "none". |
+| **msg** | *String* | Log output message passed from the server or driver. If necessary, the message is escaped according to the JSON specification. |
+| **attr** | *Object* | One or more key-value pairs for additional log attributes. If a log message does not include any additional attributes, the `attr` object is omitted. Attribute values may be referenced by their key name in the `msg` message body, depending on the message. If necessary, the attributes are escaped according to the JSON specification. |
+| **tags** | *Array of strings* | Strings representing any tags applicable to the log statement. For example, `["startupWarnings"]`. |
+| **truncated** | *Object* | Information about the log message truncation, if applicable. Only included if the log entry contains at least one truncated `attr` attribute. |
+| **size** | *Object* | Original size of a log entry if it has been truncated. Only included if the log entry contains at least one truncated `attr` attribute. |
+
+#### 3. Field Types
+`Severity` ranges from `Fatal` (most severe) to `Debug` (least severe).
+
+| Level | Description | Detail |
+| :--- | :--- | :--- |
+| **F** | Fatal | A critical, terminating event. |
+| **E** | Error | A serious problem.    |
+| **W** | Warning | A potential issue that is not immediately critical. |
+| **I** | Informational | General information, used when verbosity level is 0. |
+| **D1** - **D5** | Debug | Detailed logging, used for verbosity levels > 0. The number (D1, D2, etc.) indicates the specific debug verbosity level. |
+
+Likewise, `Component` field type indicates the category a logged event is a member of, such as **NETWORK** or **COMMAND** Some of the available components are:
+- **ACCESS**: Messages related to access control, such as authentication. 
+- **ASSERT**: An assertion is triggered when an operation returns an error.
+- **COMMAND**: Messages related to database commands, such as count.
+- **CONTROL**: Messages related to control activities, such as initialization.
+- **ELECTION**: Messages related specifically to replica set elections.
+- **REPL**: Messages related to replica sets, such as initial sync, heartbeats, steady state replication, and rollback. Parent component of `ELECTION`.
+- **NETWORK**: Messages related to network activities, such as accepting connections. <br>
+
+and many more.
