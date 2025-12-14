@@ -690,7 +690,7 @@ atlas config describe automation
 #### 1. List Processes
 Ensure everything is correct and run the following command to return all running processes for our Atlas project:
 ```
-atlas process list --output plaintext
+atlas process list -o plaintext
 ```
 this returns the Cluster Ids and Replica Set Name:
 ```
@@ -743,4 +743,77 @@ atlas logs download security-shard-00-00-xwgj1.mongodb.net mongos.gz --start "16
 ```
 
 ## 2. MongoDB Logging Basics
+### 1. MongoDB Logs in Atlas
+To download logs, we require the `Project Data Access Read Only` role or greater in MongoDB Atlas. To determine if our Atlas user has this role, run the following command in the Atlas CLI:
+```
+atlas project users list -o json
+```
+The equivalent of `Project Data Access Read Only` role in Atlas API is `GROUP_DATA_ACCESS_READ_ONLY`.
 
+To download the `mongod` log file for past 30 days, we run:
+```
+atlas logs download uml3-shard-00-00.xwgj1.mongodb.net mongodb.log.gz
+
+gunzip mongodb.log.gz
+```
+### 2. MongoDB Logs on Self-Managed Instances
+For this lab, I am not going to use the Replica Sets VMs because I already have a local Atlas deployment named `Dev` in my Linux host.<br> We can list all containers and if present, start our `docker.io/mongodb/mongodb-atlas-local:8` container:
+```
+podman ps -a
+
+podman start Dev
+```
+#### 1. Start Bash shell inside the Container
+Instead of running `mongosh` using:
+```
+podman exec -it Dev mongosh "mongodb://127.0.0.1:27017"
+```
+we are going to run a `/bin/bash` shell inside the Dev container:
+```
+podman exec -it Dev /bin/bash
+```
+#### 2. Check Default Location for the Log File
+Now, we are going to check the log location in `/etc/mongod.conf`:
+```
+cat /etc/mongod.conf | grep path
+```
+This command returns the default path for log: `/var/log/mongodb/mongod.log`
+
+#### 3. Check Permissions of the Server Log File and Access it
+Check the file permissions for `/var/log/mongodb/mongod.log` using `ls -l` command:
+```
+ls -l /var/log/mongodb/mongod.log
+```
+Ensure the user `mongod` has Read/Write permission for the file. Now to read the top 5 lines, we run:
+```
+head -5 /var/log/mongodb/mongod.log
+```
+
+#### 4. Capture logs from Container's output stream
+Since containers are meant to be ephemeral in nature, the server logs are probably not written in `mongod.log`, even if all the file permissions are good and the path is valid.<br> We can capture the logs written to **stdout/stderr** stream by running the following command in our host Linux `/bin/bash` shell:
+```
+podman logs Dev
+```
+
+### 5. Retrive Log Messages in mongosh
+To retrieve recent global log messages from the RAM cache in `mongosh`, we can use the `show log ` helper and provide it with one of the available filters, such as `global` or `startupWarnings`.
+```
+show log <type>
+```
+To view the available filters that can be provided to the show log helper, use the following helper command in mongosh:
+```
+show logs
+```
+----
+
+#### NOTE: 
+#### 1. Client Log path (i.e. `mongosh`), unlike server logs (`mongod`), can be find out by running the follwing command inside `mongosh`:
+```
+log.getPath()
+```
+In my case, it was `/home/mongod/.mongodb/mongosh/693e776c7a9ee6f4dc8de665_log`.
+
+#### 2. The mongosh helper `show log global` internally calls the `getLog` command to return recent log messages from the RAM cache:
+```
+db.adminCommand( { getLog:'global'} )
+```
