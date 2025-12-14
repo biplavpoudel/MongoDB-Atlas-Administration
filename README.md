@@ -701,7 +701,7 @@ atlas-qrz16v-shard-00-02.5azcnau.mongodb.net:27017   atlas-qrz16v-shard-0   <nil
 ```
 
 #### 2. Retrieve Process Metric
-In https://cloud.mongodb.com, we can head over to `Cluster Metrics` and look at the status of primary cluster node,`atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017`, for our project `Practice0`, as:
+In Atlas UI, https://cloud.mongodb.com, we can head over to `Cluster Metrics` and look at the status of primary cluster node,`atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017`, for our project `Practice0`, as:
 
 ![primary metrics](images/metricsPrimary.png)
 
@@ -717,3 +717,30 @@ CONNECTIONS   SCALAR   2025-12-12 18:17:27 +0000 UTC         0
 CONNECTIONS   SCALAR   2025-12-13 18:17:27 +0000 UTC         0
 ```
 ### 2. User and Database Management
+Atlas Users have access to Atlas application, while Databse users have access to MongoDB databases.<br>
+For Database users, MongoDB provides built-in RBAC rules to control which users can perform read and write operations on a database:
+- Atlas Admin
+- readAnyDatabase
+- readWriteAnyDatabase
+We can go more granular with `Special Privileges` and `Custom Roles`. We can also create a `Temporary User` with a duration of 6 hours, 1 day, or 1 week.<br><br>
+
+
+To create a new database user, `test-user-1`, with `readWrite` role on the `accounts` collection in the `sample_analytics` database , we run following command in `/bin/bash` :
+
+```
+atlas dbusers create --username test-user-1 --password test-password --role readWrite@sample_analytics.accounts
+```
+The syntax to specify a privilege on a database and a collection is:`--role <privilege>@<database>.<collection>`
+
+### 3. Logging Basics
+MongoDB maintains running logs of events such as: incoming connections, commands run and, issues encountered.
+
+**NOTE:** Free and shared clusters doesn't provide downloadable logs.
+
+An example of the Atlas CLI command to download logs on a Dedicated M10+ Cluster is:
+```
+atlas logs download security-shard-00-00-xwgj1.mongodb.net mongos.gz --start "1678808429" --end "1678808487"
+```
+
+## 2. MongoDB Logging Basics
+
