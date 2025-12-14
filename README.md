@@ -1,4 +1,4 @@
-# MongoDB Atlas Administrator Path
+# MongoDB Atlas Atlas Foundations and Security
 
 For the latest and most updated docs, visit: https://www.mongodb.com/docs/
 
@@ -210,7 +210,7 @@ In Atlas, there are two types of Activity Feeds:
 ### 4. Encryption in Atlas
 Three categories of Encryption:
 - **Transport Encryption** (Network Encryption) using *TLS* and Certificate Authority: *Let's Encrypt*
-- **Encryption at Rest** using *WiredTiger Encrypted Storage Engine*, and external KMS such as *AWS KMS*, *Azure Key Vault*, *GCP* 
+- **Encryption at Rest** using *WiredTiger Encrypted Storage Engine*, and external KMS such as *AWS KMS*, *Azure Key Vault*, *Google Cloud KMS* 
 - **In-use Encryption** (after loaded into memory) using *CSFLE* 
 
 #### CSFLE (Client-Side Field Level Encryption):
@@ -667,3 +667,53 @@ We use `rs.status()` command (wrapper for `replSetGetStatus`) to retrieve the cu
 - Information about operations
 
 `rs.status()` provides detailed information about all members of the replica set, their current states (PRIMARY, SECONDARY, STARTUP2, RECOVERING, etc.), hostnames, replication lag (optime), and overall health.<br> Meanwhile, `db.hello()` seems more like the subset of the full status and only provides an immediate state information needed for clients to route operations correctly.
+
+# Atlas Administration
+## 1. MongoDB Atlas Administration
+### 1. Cluster Status and Health
+
+We had setup a profile `automation` with Organization scoped to `MongoDB Atlas Learn` and Project scoped to `Practice 0`.
+To list our active profiles, run in `/bin/bash` shell:
+```
+atlas config list
+```
+This returns: `
+[
+       "automation"
+]`
+
+To describe the profile to ensure the correct `org_id` and `project_id` is set:
+```
+atlas config describe automation
+```
+
+#### 1. List Processes
+Ensure everything is correct and run the following command to return all running processes for our Atlas project:
+```
+atlas process list --output plaintext
+```
+this returns the Cluster Ids and Replica Set Name:
+```
+ID                                                   REPLICA SET NAME       SHARD NAME   VERSION
+atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017   atlas-qrz16v-shard-0   <nil>        8.0.16
+atlas-qrz16v-shard-00-01.5azcnau.mongodb.net:27017   atlas-qrz16v-shard-0   <nil>        8.0.16
+atlas-qrz16v-shard-00-02.5azcnau.mongodb.net:27017   atlas-qrz16v-shard-0   <nil>        8.0.16
+```
+
+#### 2. Retrieve Process Metric
+In https://cloud.mongodb.com, we can head over to `Cluster Metrics` and look at the status of primary cluster node,`atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017`, for our project `Practice0`, as:
+
+![primary metrics](images/metricsPrimary.png)
+
+Using atlas cli, we can retrieve metrics for the same cluster node with Period of `3PD` (3 Days), Metrics type `CONNECTIONS` and Granularity of `1PD` (1 Day) as:
+```
+atlas metrics processes atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017 --granularity P1D --period P3D --type CONNECTIONS --output plaintext 
+``` 
+which returns:
+```
+NAME          UNITS    TIMESTAMP                             VALUE    
+CONNECTIONS   SCALAR   2025-12-11 18:17:18 +0000 UTC         3        
+CONNECTIONS   SCALAR   2025-12-12 18:17:27 +0000 UTC         0        
+CONNECTIONS   SCALAR   2025-12-13 18:17:27 +0000 UTC         0
+```
+### 2. User and Database Management
