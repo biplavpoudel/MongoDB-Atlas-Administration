@@ -1158,4 +1158,68 @@ To retrieve `CONNECTIONS` metrics for a cluster node for a period of `1 Day` and
 ```
 atlas metrics processes <cluster id> --period P1D --granularity PT5M -o json –-type CONNECTIONS
 ```
-### 3. Configuring Alerts
+### 3. Configuring Alerts in Atlas CLI
+Atlas allows to configure different alerts at the Organization and Project Levels. We are focussing on Project Alerts. We **must** have `Project Owner` role to configure Project Alert settings.
+
+**NOTE**: Alerts can be configured for any metric across all cluster tiers, however, **shared-tier clusters** will only trigger alerts related to the metrics supported by those clusters, including `Network`, `Connections`, `Logical Size`, and `Opcounters`.
+
+#### 1. View our project’s current Alert Settings
+```
+atlas alerts settings list --output json
+```
+#### 2. Create a New Alert
+To create a new alert configuration that notifies a user via email when a new user joins this project:
+```
+ atlas alerts settings create --event JOINED_GROUP --enabled \
+ --notificationIntervalMin 5 \
+ --notificationType USER \
+ --notificationEmailEnabled \
+ --notificationUsername biplavpoudel764@gmail.com \
+ --output json --projectId <project id> 
+```
+#### 3. Update Alert Settings
+To update an alert to notify a different user when a new user joins in:
+```
+ atlas alerts settings update <alert id> \
+ --event JOINED_GROUP \
+ --enabled \
+ --notificationIntervalMin 5 \
+ --notificationType USER \
+ --notificationEmailEnabled \
+ --notificationUsername biplavpoudel@outlook.com \
+ --output json \
+ --projectId <project id> 
+```
+#### 4. Delete an Alert
+```
+atlas alerts settings delete <alertConfigId> 
+```
+
+### 4. Responding to Alerts
+When a condition triggers an alert, Atlas displays a warning symbol on the cluster and sends alert notifications. Our alert settings determine the notification methods. Atlas continues sending notifications at regular intervals until the alert is acknowledged.<br>
+Atlas stops issuing further notifications until:
+- the acknowledgement period ends,
+- we resolve the alert condition or,
+- we manually unacknowledge the alert.
+
+If the alert condition ends during the acknowledgement period, Atlas sends a notification.
+
+**NOTE:** A `Project Owner` cannot manually close an alert. Disabling an alert also will not mark it as CLOSED. An alert’s status will only change to CLOSED once the condition that triggered the alert is resolved.
+
+#### 1. View Alerts
+To view a list of all OPEN alerts in out project, we run:
+```
+atlas alerts list --status OPEN --output json
+```
+#### 2. Acknowledge an Alert
+To acknowledge any open alert with a time period and comment, we run:
+```
+atlas alerts acknowledge <alertId> --until '2026-01-09T00:00:00Z' --comment <comment>
+```
+#### 3. Unacknowledge an Alert
+To unacknowledge an alert:
+```
+atlas alerts unacknowledge <alertId>
+```
+
+### 5. 
