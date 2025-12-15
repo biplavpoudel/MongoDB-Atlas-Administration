@@ -1130,3 +1130,32 @@ In `mongod.log`, we will notice something similar to the following line to indic
 ```
 tail: /var/log/mongodb/mongod.log: file truncated
 ```
+
+## 3. MongoDB Database Metrics & Monitoring 
+
+### 1. Core Metrics and Additional Metrics
+MongoDB considers following metrics as `core metrics`:
+- **Query Targeting** : measures read efficiency by analyzing ratio of document scanned to document returned by read operation. Ideal ratio is 1:1.
+- **Storage**: monitor disk usage; key metrics are: Disk Space Percent Free, Disk IOPS, Disk Queue Health, Disk Latency.
+- **CPU Utilization**: tracks CPU usage by deployment; includes System and Process CPU.
+- **Memory Utilization**: system is sized to hold all indexes; key metrics are: System Memory and Swap Usage.
+- **Replication Lag**: measures delay between primary and secondary; expressed in seconds.
+
+<br>
+
+Some `additional metrics` that might be needed in monitoring are:
+- **Opcounters**: represents number of operations per second run on MongoDB process since last restart; tracks operations such as: command, query, insert, delete, update, getmore, ttldeleted.
+- **Network**: network performance metrics such as bytesIn, bytesOut, numRequests.
+- **Connections**: displays total number of active connections to the database cluster by Application, Shell Clients and Internal MongoDB Connections.
+- **Tickets Available**: represents number of concurrent read and write operations available to `WiredTiger Storage Engine`; when available tickets drop to zero, other read/write requests operations must queue until tickets are available.
+
+### 2. Monitoring M10+
+To to return all running processes for our project:
+```
+atlas processes list
+```
+To retrieve `CONNECTIONS` metrics for a cluster node for a period of `1 Day` and granularity of `5 Minutes`:
+```
+atlas metrics processes <cluster id> --period P1D --granularity PT5M -o json –-type CONNECTIONS
+```
+### 3. Configuring Alerts
