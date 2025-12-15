@@ -760,7 +760,7 @@ atlas project users list -o json
 The equivalent of `Project Data Access Read Only` role in Atlas API is `GROUP_DATA_ACCESS_READ_ONLY`.
 
 To download the `mongod` log file for past 30 days, we run:
-```
+```bash
 atlas logs download uml3-shard-00-00.xwgj1.mongodb.net mongodb.log.gz
 
 gunzip mongodb.log.gz
@@ -1333,4 +1333,35 @@ curl \
   --request 'POST' \
   --data '{"name": "Prometheus", "type": "prometheus", "url": "http://localhost:9090", "access": "proxy"}' \
   http://localhost:3000/api/datasources
+```
+
+### 4. Install Percona MongoDB Exporter
+To install the Percona MongoDB Exporter tool, follow these steps:
+```bash
+wget https://github.com/percona/mongodb_exporter/releases/download/v0.47.2/mongodb_exporter-0.47.2.linux-64-bit.deb
+
+sudo apt install ./mongodb_exporter-0.47.2.linux-64-bit.deb
+```
+
+### 5. Create a New User
+Connecting user should have sufficient rights to query needed stats:
+```json
+{
+   "role":"clusterMonitor",
+   "db":"admin"
+},
+{
+   "role":"read",
+   "db":"local"
+}
+```
+
+So, in order to create a user with sufficient privilege so that **Percona MongoDB Exporter** can read metrics from the MongoDB deployment, we first connect to our local MongoDB instance
+using `mongosh` and switch to **admin** database before creating a new database user `test` with the `clusterMonitor` role:
+```js
+use admin
+
+db.createUser({user: "test",pwd: "testing",roles: [{ role: "clusterMonitor", db: "admin" },{ role: "read", db: "local" }]})
+
+exit
 ```
