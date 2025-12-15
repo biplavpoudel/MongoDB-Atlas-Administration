@@ -372,7 +372,7 @@ mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&rea
 ## 5. Deploying Replica Set in MongoDB Deployment
 I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
 
-**NOTE:** I have added the configurations inside [ReplicaSetConfig](https://github.com/biplavpoudel/MongoDB-Atlas-Administration/tree/main/ReplicaSetConfig) folder in this repository.
+**NOTE:** I have added the configurations inside [replicaset-configs](https://github.com/biplavpoudel/MongoDB-Atlas-Administration/tree/main/replicaset-configs) folder in this repository.
 
 ### 1. Update DHCP Server
 Inside our `dhcp1.example.com` DHCP Server, we need to update the `/etc/kea/kea-dhcp4.conf` to create a new subnet for our mongod instances:
@@ -1063,13 +1063,13 @@ mongod -v --logpath /var/log/mongodb/server1.log
 To start the mongod process with the **reopen** approach, invoke the daemon with the following cli arguments:
 - `--logpath` sends all diagnostic logging information to a log file
 - `--logappend` appends new entries to the end of the existing log file
-- `-logRotate` determines the behavior for the logRotate command (rename or reopen)
+- `--logRotate` determines the behavior for the logRotate command (rename or reopen)
 ```
 mongod -v --logpath /var/log/mongodb/server1.log --logRotate reopen --logappend
 ```
 
 #### 3. Automating Log Rotation with the logrotate Service
-To automate the rotation of MongoDB logs by using the Linux logrotate service, first we make the following changes to the `mongod.conf` file:
+To automate the rotation of MongoDB logs by using the Linux logrotate service, first we make the following changes to the `mongod.conf` file with `systemLog.logRoatate` set to **reopen**:
 ```
 systemLog:
   destination: file
@@ -1084,7 +1084,7 @@ sudo vim /etc/logrotate.d/mongod.conf
 ```
 To configure **logrotate** to send a **SIGUSR1** signal to mongod once per day, or when the file size reaches 10 MB, use the following configuration:
 
-**Note**: The MongoDB configuration file and the logrotate script have the same filename. The following file should be created in `/etc/logrotate.d/` and named `mongod.conf`.
+**Note**: The MongoDB configuration file and the **logrotate** script have the same filename. The following file should be created in `/etc/logrotate.d/` and named `mongod.conf`.
 ```bash
 /var/log/mongodb/mongod.log {
    daily 
@@ -1112,11 +1112,13 @@ To test the logrotate configuration, we issue a **SIGUSR1** signal to the mongod
 ```
 sudo tail -F /var/log/mongodb/mongod.log
 ```
-Then, we invoke mongod process to rotate the logs as:
+Here, **-F** flag re-opens the log file, `mongod.log` by its name when it detects that it has been rotated. <br>
+
+Then, we issue `SIGUSR1` signal in linux to the `mongod` process to rotate the logs as:
 ```
 sudo kill -SIGUSR1 $(pidof mongod)
 ```
 In `mongod.log`, we will notice something similar to the following line to indicate that the log was reopened:
 ```
-tail: /var/log/mongodb/mongod.log: file truncated;
+tail: /var/log/mongodb/mongod.log: file truncated
 ```
