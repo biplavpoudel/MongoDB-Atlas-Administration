@@ -41,39 +41,46 @@ atlas config describe default
 ```
 
 ### 2. Create a Local environment for SDLC
-1. To create a local development environment, we need to ensure Podman/Docker is up and running.
-    ```
-    systemctl status podman.socket
-    podman --version
-    ```
-    Then deploy a new local deployment, **Dev**. We can initialize and populate the database with script inside `my-films-app/initdb-dev/loadFilms.js`:
-    ```
-    atlas deployments setup Dev --initdb my-films-app/initdb-dev
-    ```
-    **NOTE:** In my case, there was a bug that led to inability to parse my local timezone UTC+05:45 so I had to run:
-    ```
-    TZ=UTC atlas deployments setup Dev --initdb my-films-app/initdb-dev
-    ```
-2.  Choose local (Local Database) option and choose the default configuration. Now connect to the deployment with mongosh. Inside the mongosh, run: 
-    ```
-    show dbs
-    ```
-    And we will see our local database, my-films-db. Run the following command to choose that database:
-    ```
-    use my-films-db
-    ```
-    Now we can read all the inserted documents:
-    ```
-    db.films.find()
-    ```
-3. To run additional scripts after the deployment, run this inside mongosh:
-    ```
-    load ("<script_name>")
-    ```
-4. To exit mogosh, run:
-    ```
-    quit
-    ```
+To create a local development environment, we need to ensure Podman/Docker is up and running.
+```
+systemctl status podman.socket
+podman --version
+```
+Then deploy a new local deployment, **Dev**. We can initialize and populate the database with script inside `my-films-app/initdb-dev/loadFilms.js`:
+```
+atlas deployments setup Dev --initdb my-films-app/initdb-dev
+```
+**NOTE:** In my case, there was a bug that led to inability to parse my local timezone UTC+05:45 so I had to run:
+```
+TZ=UTC atlas deployments setup Dev --initdb my-films-app/initdb-dev
+```
+#### 1. Configuring Dev Dpeloyment  
+Choose local (Local Database) option and choose the default configuration. Now connect to the deployment with mongosh. Inside the mongosh, run: 
+```
+show dbs
+```
+And we will see our local database, my-films-db. Run the following command to choose that database and read all the inserted documents :
+```
+use my-films-db
+
+db.films.find()
+```
+To run additional scripts after the deployment, run this inside mongosh:
+```
+load ("<script_name>")
+```
+#### 2. Import a database
+To import an existing databse `datasets/listingsAndReviews.json` run:
+```
+mongoimport \
+  --uri "mongodb://127.0.0.1:36985" \
+  --db sample_airbnb \
+  --collection listingsAndReviews \
+  --file datasets/listingsAndReviews.json \
+  --type json
+```
+Find out on what local port is the container's port exposed and update the port accordingly. You can run `podman ps -a` to find it out.
+
 ### 3. Create a Cloud cluster using AWS/Azure/GCP for Testing
 We will create a M0 cluster (free tiered) with AWS as Cloud Provider.
 ```
@@ -804,6 +811,11 @@ To view the available filters that can be provided to the show log helper, use t
 ```
 show logs
 ```
+#### 6. View local Atlas deployment logs with the Atlas CLI
+MongoDB also provides a specific CLI command to retrieve logs for local deployments:
+```
+atlas deployment logs --deploymentName Dev
+```
 ----
 
 **NOTE**: 
@@ -895,7 +907,54 @@ Likewise, `Component` field type indicates the category a logged event is a memb
 and many more.
 
 ### 4. MongoDB Server Log Customizations
-#### 1. Verbosity Levels and Viewing Current Log Verbosity Level
+
+#### 1. Set a slowms Threshold
+`mongod.log` is also called **Diagnostic Logs**. To include slow queries in the diagnostic logs, we need to configure a property called **slowms**, which defines the max amount of time for an operation to complete before it is deemed slow. Any operations above this threhold is written to the diagnostic logs.
+
+The default value for **slowms** threshold is *100 milliseconds*. To set a custom threshold, we can do one of three things:
+1. Use **--slowms** launch parameter to MongoDB service.
+2. Use `db.setProfilingLevel()` in mongosh.
+3. Add **slowOpsThreshold** property in configuration file.
+
+
+To set a slowms threshold for an M10-or-above Atlas cluster or a self-managed MongoDB deployment, we use the `db.setProfilingLevel()` method in mongosh. This method accepts two parameters: **the profiler level** and **an options object**.
+
+The profiler level is set to `0` to *disable profiling completely*, set to `1` for *profiling operations that take longer than the threshold*, and set to `2` for *profiling all* operations.
+
+To leave the profile disabled but changes the slowms threshold to 30 milliseconds:
+```
+db.setProfilingLevel(0, { slowms: 30 })
+```
+
+#### 2. Find Slow Operations in a Log
+I will first import a `sample_airbnb` datbase into the mongod container with the command:
+```
+mongoimport \
+  --uri "mongodb://127.0.0.1:36985" \
+  --db sample_airbnb \
+  --collection listingsAndReviews \
+  --file datasets/listingsAndReviews.json \
+  --type json
+```
+Now we execute following commands successively to find all documents, sorted by the number of listings, without an index, as index-less query is always slow:
+```
+use sample_airbnb
+
+db.listingsAndReviews.findOne({ "host.host_id": '1282196'})
+
+db.listingsAndReviews.find({}).sort( {"host.host_total_listings_count":-1})
+```
+
+To find log messages related to slow operations, we use the `grep` command to find instances of the phrase `“Slow query”`, and then pipe the result into jq, a utility for processing and pretty-printing JSON:
+```
+grep "Slow query" /var/log/mongodb/mongod.log | jq
+```
+Alternatively, we can run Atlas CLI to get deplyment logs:
+```
+atlas deployment logs --deploymentName Dev -o jsonpath | grep "Slow query" | jq
+```
+
+#### 3. Verbosity Levels and Viewing Current Log Verbosity Level
 We can specify the **logging verbosity level** to increase or decrease the amount of log messages MongoDB outputs. Verbosity levels can be adjusted for all components together, or for specific named components individually.
 
 Verbosity affects log entries in the severity categories **Informational and Debug only**. Severity categories above these levels are *always shown*. <br>
@@ -932,7 +991,7 @@ The **initial** verbosity entry is the **parent verbosity** level for all compon
 
 A value of **-1**, indicates that the component **inherits the verbosity level** of their parent, if they have one (as with recovery above, inheriting from storage), or the global verbosity level if they do not (as with command).
 
-#### 2. Configure Log Verbosity Levels
+#### 4. Configure Log Verbosity Levels
 You can configure the verbosity level using:
 ##### 1. `systemLog.verbosity` settings
   To configure the default log level for all components, we use the **systemLog.verbosity** setting. To configure the level of specific components, use the **systemLog.component.*name*.verbosity** settings in `/etc/mongodb.conf`.
