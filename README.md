@@ -16,13 +16,13 @@ enabled=1
 gpgkey=https://www.mongodb.org/static/pgp/server-8.0.asc
 ```
 Then install the latest stable version of `mongosh` as:
-```
+```bash
 sudo yum install -y mongodb-mongosh
 mongosh --version
 ```
 Atlas CLI is a cli tool to interface with MongoDB Atlas; while `mongosh` is used for interacting with MongoDB Database.<br>
 Install Atlas CLI in linux (Fedora in my case):
-```
+```bash
 dnf install mongodb-atlas -y
 atlas --version
 ```
@@ -42,7 +42,7 @@ atlas config describe default
 
 ### 2. Create a Local environment for SDLC
 To create a local development environment, we need to ensure Podman/Docker is up and running.
-```
+```bash
 systemctl status podman.socket
 podman --version
 ```
@@ -60,7 +60,7 @@ Choose local (Local Database) option and choose the default configuration. Now c
 show dbs
 ```
 And we will see our local database, my-films-db. Run the following command to choose that database and read all the inserted documents :
-```
+```js
 use my-films-db
 
 db.films.find()
@@ -71,7 +71,7 @@ load ("<script_name>")
 ```
 #### 2. Import a database
 To import an existing databse `datasets/listingsAndReviews.json` run:
-```
+```bash
 mongoimport \
   --uri "mongodb://127.0.0.1:36985" \
   --db sample_airbnb \
@@ -89,7 +89,7 @@ mongosh "mongodb://localhost:27017" --quiet --eval "show dbs"
 
 ### 3. Create a Cloud cluster using AWS/Azure/GCP for Testing
 We will create a M0 cluster (free tiered) with AWS as Cloud Provider.
-```
+```bash
 atlas deployments setup Test --type ATLAS --provider AWS --region AP-SOUTH-1 --mdbVersion 8.0 --tier M0 --skipSampleData
 ```
 This creates a M0 cluster in Mumabi region of AWS with MongoDB version 8.0 with no sample data preloaded. Remember the Username and Password and keep it safe. Now to list all the deployments (local and cloud):
@@ -129,7 +129,7 @@ In short, Database Users are separate from Atlas Users, because Database Users h
     atlas organizations list --output plaintext
     ```
 2. To invite the MongoDB user with the email user@example.com to the organization with ORG_OWNER access: we run:
-    ```
+    ```bash
     atlas organizations invitations invite user@example.com --orgId <Organization-ID> --role ORG_OWNER --output json
     ```
 3. To retrieve the projects for a specific organization, we can run:
@@ -137,7 +137,7 @@ In short, Database Users are separate from Atlas Users, because Database Users h
     atlas projects list --orgId <Organization-ID> --output plaintext
     ```
 4. To invite the MongoDB user with the email user@example.com to the project with GROUP_READ_ONLY access, we can run:
-    ```
+    ```bash
     atlas projects invitations invite user@example.com --projectId <projectId> --role GROUP_READ_ONLY --output json
     ```
 5. To list all the users in a project, run:
@@ -160,23 +160,23 @@ MongoDB supports following authentication methods for Database Users:
 Unlike Atlas Users, we can also create temporary Database Users (like, for contractors) that expire in 6 hours, 1 day, or 1 week.
 
 1. To add a Database User with a Built-In Role (e.g. AtlasAdmin role):
-    ```
+    ```bash
     atlas dbusers create atlasAdmin --username dba --password dba-pass --deleteAfter 2026-01-14  --projectId <projectId>
     ```
 2. To add an IP Address to the Access List:
-    ```
+    ```bash
     atlas accessList create <ip> --type ipAddress --projectId <projectId>
     ```
 3. To update a Database User’s Role (e.g. to ReadWriteAnyDatabase role):
-    ```
+    ```bash
     atlas dbusers update dba --role readWriteAnyDatabase --projectId <projectId>
     ```
 4. To delete a User from an organization:
-    ```
+    ```bash
     atlas dbusers delete dba --projectId <projectId>
     ```
 5. To remove an IP Address from the Access List:
-    ```
+    ```bash
     atlas accessList delete <ip> --projectId <projectId>
     ```
 
@@ -196,7 +196,7 @@ To configure audit logs, you either need:
     atlas process list --output plaintext
     ```
 2. Now to download the logs with log name: *mongodb.gz* and host: *atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017* :
-    ```
+    ```bash
     atlas logs download atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017 mongodb.gz --projectId <projectId>
     ```
 **NOTE:** Atlas Audit Logs don't track user creation or modification events as these operations are directly perfomed inside Admin Database.<br>
@@ -281,7 +281,7 @@ Oplog is needed due to its usefulness such as:
 
 #### 1. Retrieve the Recent Oplog Entries
 To retrieve the most recent entries in the oplog, first log into the Atlas cluster and switch to a database, e.g. `sample_database`. Insert multiple documents into it to populate the `oplog` collection with data:
-```
+```js
 use sample_supplies
 
 show collections                                                    # returns sales
@@ -291,7 +291,7 @@ db.sales.updateMany({}, {$inc: {"customer.satisfaction": 1}});
 This command increases the value of the field **customer.satisfaction** by 1, for every documents inside the sales collection.  
 
 Now switch to `local` db and examine its collections:
-```
+```js
 use local
 
 show collections
@@ -300,7 +300,7 @@ This shows `oplog.rs` as the collection inside local database.<br>
 Query the namespace  `ns` followed by desired database and its colelction using dot notation.<br>
 Sort by the natural descending order by using the `$natural` operator followed by -1. Optionally, you can sort by timestamp in descending order by using `{"ts":-1}` for more stability.<br>
 Finally, limit the results to 5 by using `limit()` followed by 5.
-```
+```js
 db.oplog.rs.find({"ns" : "sample_supplies.sales"}).sort({$natural: -1}).limit(5)
 ```
 
@@ -332,7 +332,7 @@ Read and Write Concerns can be combined to adjust a balance between consistency 
 
 #### 1. Specify the Write Concern on an Individual Operation
 We insert a document into a `cats` collection, including a `options` document that specifies the write concern to **majority** and the write timeout to 3000 milliseconds:
-```
+```js
 use pets
 
 db.cats.insertOne({ name: "Mac", color: "black", age: 6 }, { writeConcern:
@@ -343,7 +343,7 @@ Write timeout ensures the operation waits for the specified number of acknowledg
 #### 2. Set the Default Read and Write Concerns for all users
 We use `adminCommand()` to issue command to admin database that accepts a document as argument.<br> We set the `defaultReadConcern` level to "majority", which returns only data that has been acknowledged as written to a majority of members in a replica set.<br>
 We set the `defaultWriteConcern` level to "majority" so that a majority of members must acknowledge the write operation.
-```
+```js
 use admin
 
 db.adminCommand({
@@ -414,7 +414,7 @@ systemctl restart kea-dhcp4
 ### 2. Update DNS Server
 
 Lets head into `ns1.example.com` DNS Server, log in as root and edit the existing `/etc/bind/named.conf.local` to add a new DNZ zone: `replset.com`. Append new lines as:
-```
+```bash
 cat <<EOF >> /etc/bind/named.conf.local
 zone "replset.com"
     {
@@ -451,7 +451,7 @@ mongod2 IN      A       10.0.2.153
 ```
 
 Update the reverse zone `db.2.0.10` with:
-```
+```bash
 cat << EOF >> /etc/bind/zones/db.2.0.10
 
 ; --- New MongoDB Replica Set PTR Records ---
@@ -466,7 +466,7 @@ named-checkzone replset.com /etc/bind/zones/db.replset.com
 named-checkzone 2.0.10.in-addr.arpa /etc/bind/zones/db.2.0.10
 ```
 Reload BIND9 service:
-```
+```bash
 systemctl reload bind9
 ```
 
@@ -493,7 +493,7 @@ e.g. For `mongod0` server:
 ```
 
 Likewise open firewall port: tcp/27017 in firewall-cmd as:
-```
+```bash
 firewall-cmd --permanent --add-rich-rule='
     rule family="ipv4"
     source address="10.0.2.128/25"
@@ -511,24 +511,24 @@ We are opting for `Keyfile` authentication, for this testing lab, to avoid the h
 
 #### 1. Generate the keyfile
 Lets pick `mongod0` and generate the shared key:
-```
+```bash
 sudo mkdir -p /etc/mongodb/pki
 sudo openssl rand -base64 756 | sudo tee /etc/mongodb/pki/keyfile
 ```
 #### 2. Set permissions and ownership
 Set the owner to be `mongodb` (system user running `mongod`) and permission to be 400.
-```
+```bash
 sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
 sudo chmod 400 /etc/mongodb/pki/keyfile
 ```
 #### 3. Copy the key to other VMs
 We use scp (secure copy) to replicate the keyfile in `etc/mongodb/pki/keyfile` of remaining two VMs:
-```
+```bash
 scp /etc/mongodb/pki/keyfile root@10.0.2.152:/tmp/
 scp /etc/mongodb/pki/keyfile root@10.0.2.153:/tmp/
 ```
 Then, in each of the two remaining VMs, `mongod1` and `mongod2` we repeat the process:
-```
+```bash
 sudo mv /tmp/keyfile /etc/mongodb/pki/
 sudo chown mongodb:mongodb /etc/mongodb/pki/keyfile
 sudo chmod 400 /etc/mongodb/pki/keyfile
@@ -555,7 +555,7 @@ Replicate the update in other two VMs and update `net.bindIp` field accordingly.
 **WARN**: Use spaces not tabs, as YAML explicitly needs spaces. Also, the reason we use fqdn in `net.bindIp` is because according to official documentation: *Starting in MongoDB 5.0, nodes that are only configured with an IP address fail startup validation and do not start.*
 
 Now, restart MongoDB for changes to take effect and ensure `mongod` daemon is listening in correct IP:
-```
+```bash
 sudo systemctl restart mongod
 ss -tulpn | grep 27017
 ```
@@ -564,9 +564,7 @@ Correct output for `mongod0` looks like:
 
 ### 6. Initiate the Replica Set
 Connect on Server1, **mongod0**, by using the `mongosh` command and switch to the `admin` database.<br> Use `rs.initiate()` with a document that contains the replica set as the `_id` and the hosts’ names. 
-```
-mongosh
-
+```js
 use admin
 
 rs.initiate(
@@ -586,7 +584,7 @@ rs.initiate(
 Execute `mongosh` on each VM, one of the VM becomes primary and rest becomes secondary. Since each VM has `priority:1`, the election is random.
 
 In my case, `mongod2` was the **primary member**, so inside it I created an admin user that’s able to authenticate to the replica set.
-```
+```js
 db.createUser({
    user: "dba-admin",
    pwd: "dba-pass",
@@ -598,14 +596,12 @@ db.createUser({
 
 ### 8. Login as Admin User
 Exit `mongosh` and then log back in to the replica set, `mongod2` as: 
-```
-quit
-
+```bash
 mongosh --host mongod2.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
 ```
 ### 9. Change Priority of Members
 Now, inside the `mongosh`, to change the priority level of `mongod0` to be be higher than others in a running replica set, we execute `rs.conf()`. We assign the `rs.conf()` command to a variable to retrieve the replica set configuration object and assign priority value for each member:
-```
+```js
 use admin
 
 rs.conf()
@@ -626,7 +622,7 @@ quit
 ```
 Now `mongod0` is elected to be the primary member of the `mongodb-repl-dev` replica set.
 Log in to the mongosh as admin user using:
-```
+```bash
 mongosh --host mongod0.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
 ```
 
@@ -719,7 +715,7 @@ In Atlas UI, https://cloud.mongodb.com, we can head over to `Cluster Metrics` an
 ![primary metrics](images/metricsPrimary.png)
 
 Using atlas cli, we can retrieve metrics for the same cluster node with Period of `3PD` (3 Days), Metrics type `CONNECTIONS` and Granularity of `1PD` (1 Day) as:
-```
+```bash
 atlas metrics processes atlas-qrz16v-shard-00-00.5azcnau.mongodb.net:27017 --granularity P1D --period P3D --type CONNECTIONS --output plaintext 
 ``` 
 which returns:
@@ -740,7 +736,7 @@ We can go more granular with `Special Privileges` and `Custom Roles`. We can als
 
 To create a new database user, `test-user-1`, with `readWrite` role on the `accounts` collection in the `sample_analytics` database , we run following command in `/bin/bash` :
 
-```
+```bash
 atlas dbusers create --username test-user-1 --password test-password --role readWrite@sample_analytics.accounts
 ```
 The syntax to specify a privilege on a database and a collection is:`--role <privilege>@<database>.<collection>`
@@ -751,7 +747,7 @@ MongoDB maintains running logs of events such as: incoming connections, commands
 **NOTE:** Free and shared clusters doesn't provide downloadable logs.
 
 An example of the Atlas CLI command to download logs on a Dedicated M10+ Cluster is:
-```
+```bash
 atlas logs download security-shard-00-00-xwgj1.mongodb.net mongos.gz --start "1678808429" --end "1678808487"
 ```
 
@@ -778,16 +774,16 @@ podman start Dev
 ```
 #### 1. Start Bash shell inside the Container
 Instead of running `mongosh` using:
-```
+```bash
 podman exec -it Dev mongosh "mongodb://127.0.0.1:27017"
 ```
 we are going to run a `/bin/bash` shell inside the Dev container:
-```
+```bash
 podman exec -it Dev /bin/bash
 ```
 #### 2. Check Default Location for the Log File
 Now, we are going to check the log location in `/etc/mongod.conf`:
-```
+```bash
 cat /etc/mongod.conf | grep path
 ```
 This command returns the default path for log: `/var/log/mongodb/mongod.log`
@@ -832,7 +828,7 @@ atlas deployment logs --deploymentName Dev
     In my case, it was `/home/mongod/.mongodb/mongosh/693e776c7a9ee6f4dc8de665_log`.
 
 2. The mongosh helper `show log global` internally calls the `getLog` command to return recent log messages from the RAM cache:
-    ```
+    ```js
     db.adminCommand( { getLog:'global'} )
     ```
 
@@ -928,13 +924,13 @@ To set a slowms threshold for an M10-or-above Atlas cluster or a self-managed Mo
 The profiler level is set to `0` to *disable profiling completely*, set to `1` for *profiling operations that take longer than the threshold*, and set to `2` for *profiling all* operations.
 
 To leave the profile disabled but changes the slowms threshold to 30 milliseconds:
-```
+```js
 db.setProfilingLevel(0, { slowms: 30 })
 ```
 
 #### 2. Find Slow Operations in a Log
 I will first import a `sample_airbnb` datbase into the mongod container with the command:
-```
+```bash
 mongoimport \
   --uri "mongodb://127.0.0.1:36985" \
   --db sample_airbnb \
@@ -943,7 +939,7 @@ mongoimport \
   --type json
 ```
 Now we execute following command to find all documents, sorted by the number of listings, without an index, as index-less query is always slow:
-```
+```js
 use sample_airbnb
 
 db.listingsAndReviews.findOne({ "host.host_id": '1282196'})
@@ -952,11 +948,11 @@ db.listingsAndReviews.find({}).sort( {"host.host_total_listings_count":-1})
 ```
 
 To find log messages related to slow operations, we use the `grep` command to find instances of the phrase `“Slow query”`, and then pipe the result into jq, a utility for processing and pretty-printing JSON:
-```
+```bash
 grep "Slow query" /var/log/mongodb/mongod.log | jq
 ```
 Alternatively, we can run Atlas CLI to get deplyment logs:
-```
+```bash
 atlas deployment logs --deploymentName Dev -o jsonpath | grep "Slow query" | jq
 ```
 
@@ -1015,7 +1011,7 @@ systemLog:
 ```
 ##### 2. `logComponentVerbosity` Parameter
 To set the **logComponentVerbosity** parameter, we pass a document with the verbosity settings to change in `db.adminCommand()`
-```yaml
+```js
 db.adminCommand({
   setParameter: 1,
   logComponentVerbosity: {
@@ -1034,11 +1030,11 @@ db.adminCommand({
 ```
 ##### 3. `db.setLogLevel()` command for self-managed deployment
 We can use the `db.setLogLevel()` method to update a single component log level in `mongosh` for self-managed deployments. 
-```
+```bash
 db.setLogLevel(-1, "query")
 ```
 Or, simply run from the `/bin/bash` shell using the `--eval` parameter, which allows us to immediately pass commands to mongosh without entering the shell and `--quiet` option which reduces noise in the output:
-```
+```bash
 mongosh "mongodb://localhost:36985" --quiet --eval "db.setLogLevel(-1, "query")"
 ```
 
@@ -1047,7 +1043,7 @@ In MongoDB M10+ Atlas Cluster, logs messages and system event audit messages are
 
 #### 1. Rotating Logs in self-managed deployment
 To rotate logs for a self-managed `mongod` deployment, we can use the `db.adminCommand()` in mongosh:
-```
+```js
 db.adminCommand( { logRotate : 1 } )
 ```
 Alternatively, we can issue the `SIGUSR1` signal to the `mongod` process with the following command:
@@ -1067,6 +1063,7 @@ Similarly, log rotation with `--logRotate` reopen closes and opens the log file 
 - `--logpath` sends all diagnostic logging information to a log file
 - `--logappend` appends new entries to the end of the existing log file
 - `--logRotate` determines the behavior for the logRotate command (rename or reopen)
+
 ```
 mongod -v --logpath /var/log/mongodb/server1.log --logRotate reopen --logappend
 ```
@@ -1117,13 +1114,13 @@ We then restart the mongod service with: `systemctl restart mongod`.
 
 #### 4. Testing the logrotate Configuration
 To test the logrotate configuration, we issue a **SIGUSR1** signal to the mongod process while watching the log in real-time:
-```
+```bash
 sudo tail -F /var/log/mongodb/mongod.log
 ```
 Here, **-F** flag re-opens the log file, `mongod.log` by its name when it detects that it has been rotated. <br>
 
 Then, we issue `SIGUSR1` signal in linux to the `mongod` process to rotate the logs as:
-```
+```bash
 sudo kill -SIGUSR1 $(pidof mongod)
 ```
 In `mongod.log`, we will notice something similar to the following line to indicate that the log was reopened:
@@ -1155,7 +1152,7 @@ To to return all running processes for our project:
 atlas processes list
 ```
 To retrieve `CONNECTIONS` metrics for a cluster node for a period of `1 Day` and granularity of `5 Minutes`:
-```
+```bash
 atlas metrics processes <cluster id> --period P1D --granularity PT5M -o json –-type CONNECTIONS
 ```
 ### 3. Configuring Alerts in Atlas CLI
@@ -1169,7 +1166,7 @@ atlas alerts settings list --output json
 ```
 #### 2. Create a New Alert
 To create a new alert configuration that notifies a user via email when a new user joins this project:
-```
+```bash
  atlas alerts settings create --event JOINED_GROUP --enabled \
  --notificationIntervalMin 5 \
  --notificationType USER \
@@ -1179,7 +1176,7 @@ To create a new alert configuration that notifies a user via email when a new us
 ```
 #### 3. Update Alert Settings
 To update an alert to notify a different user when a new user joins in:
-```
+```bash
  atlas alerts settings update <alert id> \
  --event JOINED_GROUP \
  --enabled \
@@ -1213,7 +1210,7 @@ atlas alerts list --status OPEN --output json
 ```
 #### 2. Acknowledge an Alert
 To acknowledge any open alert with a time period and comment, we run:
-```
+```bash
 atlas alerts acknowledge <alertId> --until '2026-01-09T00:00:00Z' --comment <comment>
 ```
 #### 3. Unacknowledge an Alert
@@ -1222,4 +1219,118 @@ To unacknowledge an alert:
 atlas alerts unacknowledge <alertId>
 ```
 
-### 5. 
+### 5. Command Line Metrics
+#### 1. serverStatus
+To return a document that provides an overview of the database’s state, we run:
+```js
+db.runCommand(
+   {
+     serverStatus: 1
+   }
+)
+```
+
+#### 2. currentOp
+To return a document that provides all currently active operations, we run:
+```js
+db.adminCommand(
+   {
+     currentOp: true,
+     "$all": true
+   }
+)
+```
+
+#### 3. killOp
+To kill an active operations, we run:
+```js
+db.adminCommand(
+   {
+     killOp: 1,
+     op: <opid>,
+     comment: <any>
+   }
+)
+```
+
+## 4. Third-Party Integrations with Prometheus, Percona MongoDB Exporter, and Grafana Server
+Since Prometheus cannot directly scrape monitoring data from our self-managed cluster, we can use **Percona MongoDB Exporter** tool as the Prometheus target to gather the local deployment metrics and make them available to display with Grafana.
+
+![3rd party integration for local deployment](images/percona.png)
+
+**NOTE**: Prometheus can directly scrape from MongoDB Atlas Cloud after configuring *Authentication Credentials* and *HTTP Service Discovery* under `Integrations` inside `Project Settings` of Atlas UI.
+
+Now, for this lab, let's start up my debian-based `mongod0` VM (10.0.2.151) in *ServersNAT* network in KVM.
+
+```bash
+sudo virsh net-list --all
+sudo virsh net-start ServersNAT     # NAT Network for the VMs
+
+sudo virsh list --all
+
+sudo virsh start mongod0        # Primary Replica Set Node
+sudo virsh start dhcp1-ddns     # KEA DHCP Server
+sudo virsh start ns1            # BIND9 DNS Server
+
+ssh mongoset@10.0.2.151       # ssh into mongoset@mongod0 server
+```
+### 1. Install Prometheus on Debian VM
+We update the APT package list and install `prometheus` package:
+```bash
+# Updates the list of available packages
+sudo apt update
+
+# install the prometheus APT package
+sudo apt install prometheus --yes
+
+# checks the runtime status of prometheus service
+sudo systemctl status prometheus
+
+# check if Prometheus Server is ready to serve traffic
+curl http://localhost:9090/-/ready
+```
+
+### 2. Install Grafana
+To install Grafana from the APT repository, we perform following steps first:
+```bash
+# prerequisite packages
+sudo apt-get install -y apt-transport-https wget
+
+# import gpg key
+sudo mkdir -p /etc/apt/keyrings/
+wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+
+# add a repository for stable releases
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+```
+Then we can install Grafana OSS package as:
+```bash
+# Updates the list of available packages
+sudo apt-get update
+
+# Installs the latest OSS release:
+sudo apt-get install grafana
+
+# to configure grafana to start automatically using systemd
+sudo /bin/systemctl daemon-reload
+sudo /bin/systemctl enable grafana-server
+
+# starts grafana-server
+sudo /bin/systemctl start grafana-server
+```
+
+To check if the Grafana server is healthy, we run:
+```bash
+curl http://localhost:3000/api/health
+```
+
+### 3. Add Prometheus to the Grafana Server
+Lets run the following command to add the Prometheus data source to the Grafana server: 
+```bash
+curl \
+  --header 'Content-Type: application/json' \
+  --user 'admin:admin' \
+  --request 'POST' \
+  --data '{"name": "Prometheus", "type": "prometheus", "url": "http://localhost:9090", "access": "proxy"}' \
+  http://localhost:3000/api/datasources
+```
