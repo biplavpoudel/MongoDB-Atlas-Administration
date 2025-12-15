@@ -583,7 +583,7 @@ rs.initiate(
 ### 7. Create Admin User
 Execute `mongosh` on each VM, one of the VM becomes primary and rest becomes secondary. Since each VM has `priority:1`, the election is random.
 
-In my case, `mongod2` was the **primary member**, so inside it I created an admin user that’s able to authenticate to the replica set.
+In my case, `mongod2` was the **primary member**, so inside it I created an admin user with `root` role that’s able to authenticate to the replica set.
 ```js
 db.createUser({
    user: "dba-admin",
@@ -1357,7 +1357,13 @@ Connecting user should have sufficient rights to query needed stats:
 ```
 
 So, in order to create a user with sufficient privilege so that **Percona MongoDB Exporter** can read metrics from the MongoDB deployment, we first connect to our local MongoDB instance
-using `mongosh` and switch to **admin** database before creating a new database user `test` with the `clusterMonitor` role:
+using `mongosh` as the **root** user:
+
+```bash
+mongosh --host mongod0.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
+```
+
+Then we switch to **admin** database before creating the new database user `test` with the `clusterMonitor` role:
 ```js
 use admin
 
@@ -1365,3 +1371,42 @@ db.createUser({user: "test",pwd: "testing",roles: [{ role: "clusterMonitor", db:
 
 exit
 ```
+### 6. Create a Service for Percona MongoDB Exporter
+Let's create a new service for the **Percona MongoDB exporter** and have it run as the **Prometheus** user:
+
+1. Create a new service file for the **mongodb_exporter**:
+    ```bash
+    sudo nano /lib/systemd/system/mongodb_exporter.service
+    ```
+2. Add following contents:
+    ```
+    [Unit]
+    Description=MongoDB Exporter
+    User=prometheus
+
+    [Service]
+    Type=simple
+    Restart=always
+    ExecStart=/usr/local/bin/mongodb_exporter \
+    --collect-all \
+    --mongodb.uri=mongodb://test:testing@localhost:27017
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+3. Save the file and run follwing commands:
+    ```bash
+    # restart the system daemon to reload the unit files
+    sudo systemctl daemon-reload
+
+    # start and enable the mongodb_exporter system service
+    sudo systemctl start mongodb_exporter
+    sudo systemctl enable mongodb_exporter
+
+    # Confirm that the mongodb_exporter system service is running
+    sudo systemctl status --full mongodb_exporter
+    ```
+4. Now confirm that the **mongodb_exporter** system service is running:
+    ```bash
+    curl http://localhost:9216/metrics
+    ```
