@@ -932,12 +932,12 @@ The **initial** verbosity entry is the **parent verbosity** level for all compon
 
 A value of **-1**, indicates that the component **inherits the verbosity level** of their parent, if they have one (as with recovery above, inheriting from storage), or the global verbosity level if they do not (as with command).
 
-#### 2.Configure Log Verbosity Levels
+#### 2. Configure Log Verbosity Levels
 You can configure the verbosity level using:
-1. Configuration file: **/etc/mongodb.conf**
-    - `systemLog.verbosity` and `systemLog.component.<name>.verbosity`
-    e.g.
-    ```yaml
+##### 1. `systemLog.verbosity` settings
+  To configure the default log level for all components, we use the **systemLog.verbosity** setting. To configure the level of specific components, use the **systemLog.component.*name*.verbosity** settings in `/etc/mongodb.conf`.
+  
+  ```yaml
     systemLog:
    verbosity: 1
    component:
@@ -947,10 +947,10 @@ You can configure the verbosity level using:
          verbosity: 2
          journal:
             verbosity: 1
-    ```
-2. Command line: **mongosh** shell
-    - `logComponentVerbosity` parameter in `db.adminCommand()` 
-    ```yaml
+  ```
+##### 2. `logComponentVerbosity` Parameter
+To set the **logComponentVerbosity** parameter, we pass a document with the verbosity settings to change in `db.adminCommand()`
+  ```yaml
     db.adminCommand({
     setParameter: 1,
     logComponentVerbosity: {
@@ -966,8 +966,9 @@ You can configure the verbosity level using:
       }
     }
     })
-    ```
-    - `db.setLogLevel()`
-    ```
+  ```
+##### 3. `db.setLogLevel()`
+We can use the `db.setLogLevel()` method to update a single component log level. 
+  ```
     db.setLogLevel(-1, "query")
-    ```
+  ```
