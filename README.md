@@ -81,6 +81,12 @@ mongoimport \
 ```
 Find out on what local port is the container's port exposed and update the port accordingly. You can run `podman ps -a` to find it out.
 
+#### 3. Run mongosh without interactive shell
+To execute MongoDB JS expressions directly from our command line without entering the interactive shell environment, we can make use of `mongosh --eval`:
+```
+mongosh "mongodb://localhost:27017" --quiet --eval "show dbs"
+```
+
 ### 3. Create a Cloud cluster using AWS/Azure/GCP for Testing
 We will create a M0 cluster (free tiered) with AWS as Cloud Provider.
 ```
@@ -936,7 +942,7 @@ mongoimport \
   --file datasets/listingsAndReviews.json \
   --type json
 ```
-Now we execute following commands successively to find all documents, sorted by the number of listings, without an index, as index-less query is always slow:
+Now we execute following command to find all documents, sorted by the number of listings, without an index, as index-less query is always slow:
 ```
 use sample_airbnb
 
@@ -996,38 +1002,121 @@ You can configure the verbosity level using:
 ##### 1. `systemLog.verbosity` settings
   To configure the default log level for all components, we use the **systemLog.verbosity** setting. To configure the level of specific components, use the **systemLog.component.*name*.verbosity** settings in `/etc/mongodb.conf`.
   
-  ```yaml
-    systemLog:
-   verbosity: 1
-   component:
-      query:
-         verbosity: 2
-      storage:
-         verbosity: 2
-         journal:
-            verbosity: 1
-  ```
+```yaml
+systemLog:
+  verbosity: 1
+  component:
+    query:
+      verbosity: 2
+    storage:
+      verbosity: 2
+      journal:
+        verbosity: 1
+```
 ##### 2. `logComponentVerbosity` Parameter
 To set the **logComponentVerbosity** parameter, we pass a document with the verbosity settings to change in `db.adminCommand()`
-  ```yaml
-    db.adminCommand({
-    setParameter: 1,
-    logComponentVerbosity: {
-      verbosity: 1,
-      query: {
-         verbosity: 2
-      },
-      storage: {
-         verbosity: 2,
-         journal: {
-            verbosity: 1
-         }
-      }
+```yaml
+db.adminCommand({
+  setParameter: 1,
+  logComponentVerbosity: {
+    verbosity: 1,
+    query: {
+       verbosity: 2
+    },
+    storage: {
+       verbosity: 2,
+       journal: {
+          verbosity: 1
+       }
     }
-    })
-  ```
-##### 3. `db.setLogLevel()`
-We can use the `db.setLogLevel()` method to update a single component log level. 
-  ```
-    db.setLogLevel(-1, "query")
-  ```
+  }
+})
+```
+##### 3. `db.setLogLevel()` command for self-managed deployment
+We can use the `db.setLogLevel()` method to update a single component log level in `mongosh` for self-managed deployments. 
+```
+db.setLogLevel(-1, "query")
+```
+Or, simply run from the `/bin/bash` shell using the `--eval` parameter, which allows us to immediately pass commands to mongosh without entering the shell and `--quiet` option which reduces noise in the output:
+```
+mongosh "mongodb://localhost:36985" --quiet --eval "db.setLogLevel(-1, "query")"
+```
+
+### 5. MongoDB Server Log Rotation and Retention
+In MongoDB M10+ Atlas Cluster, logs messages and system event audit messages are retained for 30 days for each node in a cluster. To view and download logs in Atlas, the user must have at least `Project Data Access Read Only` role. <br> In contrast, for self-managed deployments, log files are retained indefinitely unless explicitly told to rotate logs. 
+
+#### 1. Rotating Logs in self-managed deployment
+To rotate logs for a self-managed `mongod` deployment, we can use the `db.adminCommand()` in mongosh:
+```
+db.adminCommand( { logRotate : 1 } )
+```
+Alternatively, we can issue the `SIGUSR1` signal to the `mongod` process with the following command:
+```
+sudo kill -SIGUSR1 $(pidof mongod)
+```
+
+#### 2. Rotating Logs Using Rename and Reopen Rotation Behaviour  
+To start mongod with MongoDB’s standard **rename** log rotation behavior, we need to invoke the daemon with the `--logpath` argument. Even though rename is not explicitly specified, it’s the default if the --logpath argument is used:
+```
+mongod -v --logpath /var/log/mongodb/server1.log
+```
+To start the mongod process with the **reopen** approach, invoke the daemon with the following cli arguments:
+- `--logpath` sends all diagnostic logging information to a log file
+- `--logappend` appends new entries to the end of the existing log file
+- `-logRotate` determines the behavior for the logRotate command (rename or reopen)
+```
+mongod -v --logpath /var/log/mongodb/server1.log --logRotate reopen --logappend
+```
+
+#### 3. Automating Log Rotation with the logrotate Service
+To automate the rotation of MongoDB logs by using the Linux logrotate service, first we make the following changes to the `mongod.conf` file:
+```
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+  logRotate: reopen
+```
+
+To leverage the logrotate service in Linux, create a script that provides instructions to logrotate, located in the etc directory for the logrotate service:
+```
+sudo vim /etc/logrotate.d/mongod.conf
+```
+To configure **logrotate** to send a **SIGUSR1** signal to mongod once per day, or when the file size reaches 10 MB, use the following configuration:
+
+**Note**: The MongoDB configuration file and the logrotate script have the same filename. The following file should be created in `/etc/logrotate.d/` and named `mongod.conf`.
+```bash
+/var/log/mongodb/mongod.log {
+   daily 
+   size 
+   rotate 10 
+   missingok
+   compress 
+   compresscmd /usr/bin/bzip2 
+   uncompresscmd /usr/bin/bunzip2 # command to uncompress the file
+   compressoptions -9 # options for the compression utility
+   compressext .bz2 # file format of the compressed archive
+   delaycompress # wait to compress files until it's an opportune time
+   notifempty # don't bother compressing if the log file is empty
+   create 640 mongodb mongodb # creates the log  file with specific permissions
+   sharedscripts # don't run multiple rotations at once
+   postrotate # tell mongod to rotate, remove empty files
+       /bin/kill -SIGUSR1 `cat /var/run/mongodb/mongod.pid 2>/dev/null` >/dev/null 2>&1
+       find /var/log/mongodb -type f -size 0 -regextype posix-awk -regex "^\/var\/log\/mongodb\/mongod\.log\.[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}$" -execdir rm {} \; >/dev/null 2>&1
+   endscript
+}
+```
+We then restart the mongod service with: `systemctl restart mongod`
+#### 4. Testing the logrotate Configuration
+To test the logrotate configuration, we issue a **SIGUSR1** signal to the mongod process while watching the log in real-time:
+```
+sudo tail -F /var/log/mongodb/mongod.log
+```
+Then, we invoke mongod process to rotate the logs as:
+```
+sudo kill -SIGUSR1 $(pidof mongod)
+```
+In `mongod.log`, we will notice something similar to the following line to indicate that the log was reopened:
+```
+tail: /var/log/mongodb/mongod.log: file truncated;
+```
