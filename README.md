@@ -895,3 +895,79 @@ Likewise, `Component` field type indicates the category a logged event is a memb
 and many more.
 
 ### 4. MongoDB Server Log Customizations
+#### 1. Verbosity Levels and Viewing Current Log Verbosity Level
+We can specify the **logging verbosity level** to increase or decrease the amount of log messages MongoDB outputs. Verbosity levels can be adjusted for all components together, or for specific named components individually.
+
+Verbosity affects log entries in the severity categories **Informational and Debug only**. Severity categories above these levels are *always shown*. <br>
+We set verbosity levels to a *high value* to show detailed logging for debugging or development, or to a *low value* to minimize writes to the log on a vetted production deployment.
+
+To view the current verbosity levels, we use the `db.getLogComponents()` method:
+```
+db.getLogComponents()
+```
+The output resembles similar to:
+```json
+{
+ "verbosity" : 0,
+ "accessControl" : {
+    "verbosity" : -1
+ },
+ "command" : {
+    "verbosity" : -1
+ },
+ ...
+ "storage" : {
+    "verbosity" : -1,
+    "recovery" : {
+       "verbosity" : -1
+    },
+    "journal" : {
+        "verbosity" : -1
+    }
+ },
+ ...
+}
+```
+The **initial** verbosity entry is the **parent verbosity** level for all components,while the individual named components that follow, such as `accessControl`, indicate the specific verbosity level for that component, overriding the global verbosity level for that particular component if set.
+
+A value of **-1**, indicates that the component **inherits the verbosity level** of their parent, if they have one (as with recovery above, inheriting from storage), or the global verbosity level if they do not (as with command).
+
+#### 2.Configure Log Verbosity Levels
+You can configure the verbosity level using:
+1. Configuration file: **/etc/mongodb.conf**
+    - `systemLog.verbosity` and `systemLog.component.<name>.verbosity`
+    e.g.
+    ```yaml
+    systemLog:
+   verbosity: 1
+   component:
+      query:
+         verbosity: 2
+      storage:
+         verbosity: 2
+         journal:
+            verbosity: 1
+    ```
+2. Command line: **mongosh** shell
+    - `logComponentVerbosity` parameter in `db.adminCommand()` 
+    ```yaml
+    db.adminCommand({
+    setParameter: 1,
+    logComponentVerbosity: {
+      verbosity: 1,
+      query: {
+         verbosity: 2
+      },
+      storage: {
+         verbosity: 2,
+         journal: {
+            verbosity: 1
+         }
+      }
+    }
+    })
+    ```
+    - `db.setLogLevel()`
+    ```
+    db.setLogLevel(-1, "query")
+    ```
