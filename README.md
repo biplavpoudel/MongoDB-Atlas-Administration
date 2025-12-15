@@ -1055,12 +1055,15 @@ Alternatively, we can issue the `SIGUSR1` signal to the `mongod` process with th
 sudo kill -SIGUSR1 $(pidof mongod)
 ```
 
-#### 2. Rotating Logs Using Rename and Reopen Rotation Behaviour  
-To start mongod with MongoDB’s standard **rename** log rotation behavior, we need to invoke the daemon with the `--logpath` argument. Even though rename is not explicitly specified, it’s the default if the --logpath argument is used:
+#### 2. Rotating Logs Using rename and reopen rotation behaviour
+
+By default, MongoDB uses the `--logRotate rename` behavior. With `rename` behavior, `mongod` responds to **logRotate** command or **SIGUSER1** signal and renames the current log file by appending a UTC timestamp to the filename, opens a new log file, closes the old log file, and sends all new log entries to the new log file.
+
+To start mongod with MongoDB’s standard **rename** log rotation behavior, we need to invoke the daemon with the `--logpath` argument. Even though rename is not explicitly specified, it’s the default if the `--logpath` argument is used:
 ```
 mongod -v --logpath /var/log/mongodb/server1.log
 ```
-To start the mongod process with the **reopen** approach, invoke the daemon with the following cli arguments:
+Similarly, log rotation with `--logRotate` reopen closes and opens the log file following the typical Linux/Unix log rotate behavior. To start the mongod process with the **reopen** approach, we invoke the `mongod` daemon with the following cli arguments:
 - `--logpath` sends all diagnostic logging information to a log file
 - `--logappend` appends new entries to the end of the existing log file
 - `--logRotate` determines the behavior for the logRotate command (rename or reopen)
@@ -1069,7 +1072,10 @@ mongod -v --logpath /var/log/mongodb/server1.log --logRotate reopen --logappend
 ```
 
 #### 3. Automating Log Rotation with the logrotate Service
-To automate the rotation of MongoDB logs by using the Linux logrotate service, first we make the following changes to the `mongod.conf` file with `systemLog.logRoatate` set to **reopen**:
+
+`logrotate` is a Linux utility designed to ease administration of systems that generate large numbers of log files. It allows automatic rotation, compression, removal, and mailing of log files. Each log file can be handled daily, weekly, monthly, or when it grows too large.
+
+To automate the rotation of MongoDB logs by using the Linux `logrotate` service, first we make the following changes to the `mongod.conf` file with `systemLog.logRoatate` set to **reopen**:
 ```
 systemLog:
   destination: file
@@ -1078,13 +1084,12 @@ systemLog:
   logRotate: reopen
 ```
 
-To leverage the logrotate service in Linux, create a script that provides instructions to logrotate, located in the etc directory for the logrotate service:
+To leverage the **logrotate** service in Linux, we need to create a script that provides instructions to rotate logs, located in the `/etc/logrotate.d` directory for the service:
 ```
 sudo vim /etc/logrotate.d/mongod.conf
 ```
-To configure **logrotate** to send a **SIGUSR1** signal to mongod once per day, or when the file size reaches 10 MB, use the following configuration:
+To configure **logrotate** to send a **SIGUSR1** signal to mongod once per day, or when the file size reaches 10 MB, we use the following configuration:
 
-**Note**: The MongoDB configuration file and the **logrotate** script have the same filename. The following file should be created in `/etc/logrotate.d/` and named `mongod.conf`.
 ```bash
 /var/log/mongodb/mongod.log {
    daily 
@@ -1106,7 +1111,10 @@ To configure **logrotate** to send a **SIGUSR1** signal to mongod once per day, 
    endscript
 }
 ```
-We then restart the mongod service with: `systemctl restart mongod`
+We then restart the mongod service with: `systemctl restart mongod`.
+
+**Note**: The MongoDB configuration file and the **logrotate** script have the same filename. The following file should be created in `/etc/logrotate.d/` and named `mongod.conf`.
+
 #### 4. Testing the logrotate Configuration
 To test the logrotate configuration, we issue a **SIGUSR1** signal to the mongod process while watching the log in real-time:
 ```
