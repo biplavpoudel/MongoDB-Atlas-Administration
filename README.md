@@ -1374,7 +1374,7 @@ exit
 ### 6. Create a Service for Percona MongoDB Exporter
 Let's create a new service for the **Percona MongoDB exporter** and have it run as the **Prometheus** user:
 
-Since I installed the exporter using `.deb`, the package provides its own systemd service file `/lib/systemd/system/mongodb_exporter.service` To add runtime options without modifying the service file directly, we run the following commands:
+Since I installed the exporter using **.deb**, the package provides its own systemd service file `/lib/systemd/system/mongodb_exporter.service` To add runtime options without modifying the service file directly, we run the following commands:
 
 1. We use the `EnvironmentFile` provided by the package:
     ```bash
@@ -1405,3 +1405,47 @@ Since I installed the exporter using `.deb`, the package provides its own system
     ```bash
     curl http://localhost:9216/metrics
     ```
+### 7. Configure Percona MongoDB Exporter as a Prometheus Target
+Let's open Prometheus configuration file:
+```bash
+sudo vim /etc/prometheus/prometheus.yml
+```
+and append the following scrape configuration snippet to the `scrape_configs` section:
+```ini
+scrape_configs:
+  - job_name: 'mongodb_exporter'
+    static_configs:
+      - targets: ['localhost:9216']
+``` 
+Now we restart the `prometheus server` service to apply the configuration change:
+```
+sudo systemctl restart prometheus
+```
+
+### 8. Configure to listen on all interfaces
+To enable the prometheus to listen on all interfaces, not only localhost, we edit the `/etc/systemd/system/prometheus.service.d/override.conf` as:
+```
+sudo vim /etc/default/prometheus
+``` 
+and add following line:
+```ini
+ARGS="--web.listen-address=0.0.0.0:9090"
+```
+
+Now, we open follwing ports in `firewalld`:
+```bash
+# open TCP 9090 port for Prometheus
+sudo firewall-cmd --add-port=9090/tcp --permanent
+
+# open TCP 9090 port for Grafana
+sudo firewall-cmd --add-port=3000/tcp --permanent
+
+# reload the firewall rules
+sudo firewall-cmd --reload
+```
+
+### 9. Test Prometheus Server API
+Now let's use the Prometheus server API to confirm that the local MongoDB exporter target is present and healthy:
+```bash
+curl http://10.0.2.151:9090/api/v1/targets | jq --raw-output '.data.activeTargets[] | .scrapeUrl + " " + .health'
+```
