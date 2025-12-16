@@ -1867,7 +1867,28 @@ Cloud Backups inherit the snapshot redundancy native to our cluster's cloud prov
 
 To ensure greater redundancy for our Cloud Backups, you can also enable `Multi-Region Snapshot Distribution` in Atlas.
 
-Different Snapshots type available in Atlas UI are: All, On-Demand, and Policy.
+Different Snapshots type available in Atlas UI are: **All**, **On-Demand**, and **Policy**.
 
 **NOTE:** The main purposes of the **Backup Policy** is to decide the frequency of the backups and how long to retain the snapshots. By default, snapshots are scheduled to be taken every 6 hours. We cannot specify which database of the cluster to back up in Backup Policy.
 
+## 6. MongoDB Atlas Upgrades and Maintenance
+MongoDB minimizes downtime by leveraging replica sets to do **rolling maintenace**. A replica set remains operational even if a node is down.
+
+Some scenarios that require maintenace in MongoDB are:
+- Upgrading to a new version of MongoDB
+- Upgrading client drivers
+- Security Updates to the OS
+- Changes to membership of replica set
+- Upgrading OS itself
+
+**Stable API** allows us to upgrade our MongoDB-based application server at will, ensuring behaviour changes between MongoDB versions won't break our applications.
+
+For Atlas Cluster Upgrades, the pre-upgrade checklist is:
+
+- **Confirm client driver compatibility**: *create pre-production environment for testing*
+- **Confirm Replica Set status is healthy**
+- **Check the oplog window**: *defines rough estimate of time for maintenace in a single node without `inital sync`; time based on oplog size and difference between the oldest and most recent operations in oplog*
+- **Check the replication lag:** *if any one secondary node, falls too much behind, there is a risk of `initial sync`*
+- **Create backup of data** : cannot downgrade Atlas version
+
+**NOTE:** Atlas Major Version Changes needs to be incrementally updated.
