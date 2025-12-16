@@ -1849,7 +1849,25 @@ mongorestore --uri mongodb+srv://Cluster35257@test.5azcnau.mongodb.net
 ```
 We will be prompted to enter the password for `Cluster35257` username, each time.
 
-#### 2. Backup and Recover an Atlas Shared Tier
-Atlas Shared Tier includes `M2` and `M5` clusters. Automatic snapshots of shared-tier clusters are taken daily, starting **24 hours** after the cluster is created. You need `Project Owner` role in order to manage the cloud backups for the clusters in the project.
+#### 2. Backup and Recover an Atlas Flex Tier
+Atlas Shared Tier (M2/M5) has been replaced by Flex Tier. Automatic snapshots of shared-tier clusters are taken daily, starting **24 hours** after the cluster is created. You need `Project Owner` role in order to manage the cloud backups for the clusters in the project.
 
-#### 3. Back Up an Atlas Dedicated Tier
+#### 3. Back Up and Restore an Atlas Dedicated Tier
+Some exclusive backup features in dedicated cluster (M10+) are: **continuous cloud backup** and **on-demand snapshots**.
+
+`Continuous Cloud Backup` captures database operations in real time by capturing the oplog and snapshots. With this option enabled, cluster can be restored to any time within restore window. It allows us to meet `Recovery Point Objectives` (RPO) as low as 1 minute by configuring `point-in-time` (PIT) restore window *(default of 2 hours)*.
+
+Atlas Cloud Backup provides fully automated and localized backup storage by utlizing native snapshot functionalities of cluster's cloud service provider: **AWS**, **GCP** and **Azure**. We can either use the default backup frequency and retention policies or configure our own.
+
+Cloud Backups inherit the snapshot redundancy native to our cluster's cloud provider. Cloud Backups have at least the following redundancies depending on the cloud provider:
+
+- AWS stores objects on multiple devices across a minimum of three Availability Zones in an AWS Region.
+- Azure uses locally redundant storage (LRS) which replicates our data three times within a single data center in the selected region.
+- Google Cloud spreads our data across multiple zones in the backup region.
+
+To ensure greater redundancy for our Cloud Backups, you can also enable `Multi-Region Snapshot Distribution` in Atlas.
+
+Different Snapshots type available in Atlas UI are: All, On-Demand, and Policy.
+
+**NOTE:** The main purposes of the **Backup Policy** is to decide the frequency of the backups and how long to retain the snapshots. By default, snapshots are scheduled to be taken every 6 hours. We cannot specify which database of the cluster to back up in Backup Policy.
+
