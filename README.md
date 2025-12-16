@@ -1363,37 +1363,32 @@ using `mongosh` as the **root** user:
 mongosh --host mongod0.replset.com -u dba-admin -p dba-pass --authenticationDatabase admin
 ```
 
-Then we switch to **admin** database before creating the new database user `test` with the `clusterMonitor` role:
+Then we switch to **admin** database before creating the new database user `metricCollector` with the `clusterMonitor` role:
 ```js
 use admin
 
-db.createUser({user: "test",pwd: "testing",roles: [{ role: "clusterMonitor", db: "admin" },{ role: "read", db: "local" }]})
+db.createUser({user: "metricCollector",pwd: "metricCollectorPassword",roles: [{ role: "clusterMonitor", db: "admin" },{ role: "read", db: "local" }]})
 
 exit
 ```
 ### 6. Create a Service for Percona MongoDB Exporter
 Let's create a new service for the **Percona MongoDB exporter** and have it run as the **Prometheus** user:
 
-1. Create a new service file for the **mongodb_exporter**:
+Since I installed the exporter using `.deb`, the package provides its own systemd service file `/lib/systemd/system/mongodb_exporter.service` To add runtime options without modifying the service file directly, we run the following commands:
+
+1. We use the `EnvironmentFile` provided by the package:
     ```bash
-    sudo nano /lib/systemd/system/mongodb_exporter.service
+    # path for the environment file
+    sudo nano /etc/default/mongodb_exporter
     ```
-2. Add following contents:
+2. Add the host URI and credentials for Percona user:
+    ```ini
+    OPTIONS="--collect-all --mongodb.uri=mongodb://mongod0.replset.com:27017/admin?replicaSet=mongodb-repl-dev"
+    MONGODB_USER=metricCollector
+    MONGODB_PASSWORD=metricCollectorPassword
     ```
-    [Unit]
-    Description=MongoDB Exporter
-    User=prometheus
+    Alternatively, for security, we can set the credentials in **.env** file and modify **EnvironmentFile** key in */lib/systemd/system/mongodb_exporter.service* as: `EnvironmentFile=/etc/mongodb_exporter/.env`
 
-    [Service]
-    Type=simple
-    Restart=always
-    ExecStart=/usr/local/bin/mongodb_exporter \
-    --collect-all \
-    --mongodb.uri=mongodb://test:testing@localhost:27017
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
 3. Save the file and run follwing commands:
     ```bash
     # restart the system daemon to reload the unit files
