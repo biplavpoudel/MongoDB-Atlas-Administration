@@ -1411,7 +1411,7 @@ Let's open Prometheus configuration file:
 sudo vim /etc/prometheus/prometheus.yml
 ```
 and append the following scrape configuration snippet to the `scrape_configs` section:
-```ini
+```yml
 scrape_configs:
   - job_name: 'mongodb_exporter'
     static_configs:
@@ -1423,8 +1423,8 @@ sudo systemctl restart prometheus
 ```
 
 ### 8. Configure to listen on all interfaces
-To enable the prometheus to listen on all interfaces, not only localhost, we edit the `/etc/systemd/system/prometheus.service.d/override.conf` as:
-```
+To enable the prometheus to listen on all interfaces, not only localhost, we edit the environment file`/etc/default/prometheus` as:
+```bash
 sudo vim /etc/default/prometheus
 ``` 
 and add following line:
@@ -1432,10 +1432,13 @@ and add following line:
 ARGS="--web.listen-address=0.0.0.0:9090"
 ```
 
-Now, we open follwing ports in `firewalld`:
+Now, we open following ports in `firewalld`:
 ```bash
 # open TCP 9090 port for Prometheus
 sudo firewall-cmd --add-port=9090/tcp --permanent
+
+# open TCP 9216 for Percona Exporter for Prometheus
+sudo firewall-cmd --add-port=9216/tcp --permanent
 
 # open TCP 9090 port for Grafana
 sudo firewall-cmd --add-port=3000/tcp --permanent
@@ -1449,3 +1452,7 @@ Now let's use the Prometheus server API to confirm that the local MongoDB export
 ```bash
 curl http://10.0.2.151:9090/api/v1/targets | jq --raw-output '.data.activeTargets[] | .scrapeUrl + " " + .health'
 ```
+
+Visit the link `http://10.0.2.151:3000` to enter into Grafana Dashboard. Here is `Metrics` section of **Grafana** server for my local, self-managed deployment:
+
+![Grafana Metrics](images/grafana_metrics.png)
