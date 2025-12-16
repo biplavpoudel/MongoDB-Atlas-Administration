@@ -1230,6 +1230,15 @@ db.runCommand(
 )
 ```
 
+To get database's status for any metric, say `OPCOUNTERS`, we run:
+```js
+db.runCommand(
+   {
+     serverStatus: 1
+   }
+).opcounters
+```
+
 #### 2. currentOp
 To return a document that provides all currently active operations, we run:
 ```js
