@@ -122,6 +122,10 @@
   - [6. MongoDB Atlas Upgrades and Maintenance](#6-mongodb-atlas-upgrades-and-maintenance)
 
 
+---
+<br>
+<br>
+
 # MongoDB Atlas Atlas Foundations and Security
 
 For the latest and most updated docs, visit: https://www.mongodb.com/docs/
