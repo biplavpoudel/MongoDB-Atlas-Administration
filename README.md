@@ -2,7 +2,7 @@
 
 <h2>Table of Contents</h2>
 
-- [MongoDB Atlas Atlas Foundations and Security](#mongodb-atlas-atlas-foundations-and-security)
+- [ATLAS FOUNDATION AND SECURITY](#atlas-foundation-and-security)
   - [1. Setup Atlas CLI](#1-setup-atlas-cli)
   - [2. Getting Started with Atlas CLI](#2-getting-started-with-atlas-cli)
     - [1. To authenticate Atlas CLI with MongoDB Atlas account](#1-to-authenticate-atlas-cli-with-mongodb-atlas-account)
@@ -53,7 +53,7 @@
     - [3. Remove a Member from a Replica Set](#3-remove-a-member-from-a-replica-set)
     - [4. List all members:](#4-list-all-members)
     - [5. Retrieve the Status of a Replica Set](#5-retrieve-the-status-of-a-replica-set)
-- [Atlas Administration](#atlas-administration)
+- [ATLAS ADMINISTRATION](#atlas-administration)
   - [1. MongoDB Atlas Administration](#1-mongodb-atlas-administration)
     - [1. Cluster Status and Health](#1-cluster-status-and-health)
       - [1. List Processes](#1-list-processes)
@@ -122,11 +122,9 @@
   - [6. MongoDB Atlas Upgrades and Maintenance](#6-mongodb-atlas-upgrades-and-maintenance)
 
 
----
-<br>
 <br>
 
-# MongoDB Atlas Atlas Foundations and Security
+# ATLAS FOUNDATION AND SECURITY
 
 For the latest and most updated docs, visit: https://www.mongodb.com/docs/
 
@@ -952,7 +950,9 @@ We use `rs.status()` command (wrapper for `replSetGetStatus`) to retrieve the cu
 
 `rs.status()` provides detailed information about all members of the replica set, their current states (PRIMARY, SECONDARY, STARTUP2, RECOVERING, etc.), hostnames, replication lag (optime), and overall health.<br> Meanwhile, `db.hello()` seems more like the subset of the full status and only provides an immediate state information needed for clients to route operations correctly.
 
-# Atlas Administration
+<br>
+
+# ATLAS ADMINISTRATION
 
 ## 1. MongoDB Atlas Administration
 
