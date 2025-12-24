@@ -585,6 +585,8 @@ mongodb://db0.example.com,db1.example.com,db2.example.com/?replicaSet=myRepl&rea
 
 I am using my exising VM setup from the repository: https://github.com/biplavpoudel/BuildingLinuxServer for the Replica Sets and DNS configurations.
 
+![Replica Set Configuration](/images/mongod_network.png)
+
 **NOTE:** I have added the configurations inside [replicaset-configs](https://github.com/biplavpoudel/MongoDB-Atlas-Administration/tree/main/replicaset-configs) folder in this repository.
 
 ### 1. Update DHCP Server
