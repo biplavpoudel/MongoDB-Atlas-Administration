@@ -1975,7 +1975,7 @@ dump
 #### 2. Restore a Free-Tier Cluster
 To restore all data from the `dump/` directory into an M0 cluster:
 ```
-mongorestore --uri mongodb+srv://Cluster35257@test.5azcnau.mongodb.net 
+mongorestore --uri mongodb+srv://Cluster35257@test.5azcnau.mongodb.net --oplogReplay 
 ```
 We will be prompted to enter the password for `Cluster35257` username, each time.
 
